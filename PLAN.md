@@ -17,7 +17,8 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 ## Estado actual
 
 - **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
-- **Siguiente paso**: Milestone 2 — capa de datos OpenSky (auth OAuth2 + polling + IPC).
+- **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
+- **Siguiente paso**: Milestone 3 — UI del radar (renderer/React).
 
 ## Seguridad de credenciales (aplica a todos los milestones)
 
@@ -42,18 +43,16 @@ El repo será público, así que el `client_secret` **nunca** debe llegar a git:
 
 **Verificación**: ✅ `npm run dev` levanta una ventana Electron real (se confirmó que el sandbox de ejecución define `ELECTRON_RUN_AS_NODE=1`, lo que rompe el arranque de Electron; hay que correrlo con `env -u ELECTRON_RUN_AS_NODE npm run dev`). Repo visible en `https://github.com/alzuno/flight-radar-widget`.
 
-## Milestone 2 — Capa de datos OpenSky (proceso principal)
+## Milestone 2 — Capa de datos OpenSky (proceso principal) ✅ CERRADO
 
-- Módulo de autenticación OAuth2 (client credentials) con cache de token y renovación automática antes de que expire (30 min).
-- Módulo de polling a `/states/all` con bounding box fijo alrededor de Bernabéu/Barajas:
-  ```
-  lamin=40.35, lomin=-3.75, lamax=40.55, lomax=-3.45
-  ```
-  (≈0.06 sq°, cuesta 1 crédito por llamada — con polling cada 20-30s el consumo diario queda muy por debajo de los 4,000 créditos/día).
-- Intervalo de polling configurable (default 20-30s), con manejo de errores (401 → refrescar token y reintentar; rate limit → backoff).
-- IPC (`ipcMain`/`ipcRenderer` o `contextBridge`) para exponer los datos de vuelos al renderer de forma segura (sin exponer el token ni el secret).
+- [x] `src/main/config.ts`: carga `.env` (vía `dotenv`) y valida las variables requeridas (credenciales, coordenadas de casa, bbox, intervalo de polling).
+- [x] `src/main/opensky.ts`: `OpenSkyClient` con OAuth2 client-credentials, cache de token (renovación automática ~1 min antes de expirar) y `fetchStates()` contra `/states/all` con el bbox fijo de Bernabéu/Barajas. `startPolling()` reintenta una vez en 401 (token refrescado) y aplica backoff exponencial (30s → hasta 5 min) ante errores/429.
+- [x] IPC: main envía `flights:update` por `webContents.send`; preload lo expone de forma segura vía `contextBridge` como `window.api.onFlightsUpdate()` (sin tocar `nodeIntegration`, sin exponer el token).
+- [x] `App.tsx` (renderer) suscrito a `onFlightsUpdate`, logueando los vuelos recibidos en consola de devtools como verificación provisional (el radar visual llega en Milestone 3).
 
-**Verificación**: correr la app y loguear en consola los vuelos recibidos cada ciclo de polling; confirmar que se ven aeronaves reales cerca de Barajas.
+**Verificación**: ✅ `npm run dev` (con `ELECTRON_RUN_AS_NODE` unset) mostró en consola del proceso principal `[opensky] 8/10 aeronaves recibidas` en ciclos consecutivos de ~25s, confirmando token OAuth2 válido y datos reales cerca de Barajas llegando por IPC al renderer. `tsc --noEmit` limpio en ambos proyectos (`tsconfig.node.json` y `tsconfig.web.json`).
+
+**Fix de scope adicional**: se corrigieron dos errores de `tsc --noEmit` preexistentes de Milestone 1 (no bloqueaban `npm run dev`/`build` porque Vite no type-checkea, pero sí rompían la verificación de tipos): `baseUrl` removido en TypeScript 7 (`tsconfig.web.json`) y el namespace global `JSX` no disponible con React 19 (`App.tsx` ahora usa `React.JSX.Element`). Se añadió `src/shared/types.ts` para compartir el tipo `FlightState` entre main/preload/renderer sin cruzar los límites de los proyectos de tsconfig.
 
 ## Milestone 3 — UI del radar (renderer/React)
 

@@ -1,6 +1,6 @@
 {
   "name": "flight-radar-widget",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "main": "./out/main/index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "vite": "^7.3.6"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

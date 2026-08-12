@@ -1,7 +1,9 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
+import { loadConfig } from './config'
+import { OpenSkyClient, startPolling } from './opensky'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 400,
     height: 400,
@@ -15,9 +17,28 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return win
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  const win = createWindow()
+
+  const config = loadConfig()
+  const client = new OpenSkyClient(config)
+
+  startPolling(
+    client,
+    config.pollIntervalSeconds,
+    (flights) => {
+      console.log(`[opensky] ${flights.length} aeronaves recibidas`)
+      win.webContents.send('flights:update', flights)
+    },
+    (err) => {
+      console.error('[opensky] error de polling:', err)
+    }
+  )
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
