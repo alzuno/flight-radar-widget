@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+.env
+.env.*
+!.env.example
+api/opensky_credentials.json
+.DS_Store
+*.log
