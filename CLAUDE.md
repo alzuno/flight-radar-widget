@@ -25,6 +25,13 @@ Three-process Electron layout (`electron-vite` conventions):
 
 Config: `electron.vite.config.ts` defines the three separate build targets (main/preload/renderer) and the `@renderer` path alias (`src/renderer/src`). Corresponding `tsconfig.node.json` (main/preload) and `tsconfig.web.json` (renderer) are referenced from the root `tsconfig.json`.
 
+## Versioning workflow
+
+- Commit and push every functional change (even sub-tasks within a milestone) — don't let large uncommitted/unpushed changes pile up.
+- SemVer in `package.json`; create a git tag `vX.Y.Z` when a milestone closes.
+- Commit messages must describe what was done and why — never generic ("wip", "changes").
+- On closing a milestone: create the version tag AND add an entry to `CHANGELOG.md`. (Milestone 1 closed without this step being done — still pending as of this writing; don't repeat that gap for Milestone 2 onward.)
+
 ## Credentials and security
 
 - OpenSky OAuth2 credentials live only in a local `.env` (git-ignored), read only by the main process — never expose them to the renderer, not even indirectly via devtools.
