@@ -16,8 +16,7 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 
 ## Estado actual
 
-- **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo).
-- **Pendiente antes de Milestone 2**: tag `v0.1.0` y entrada en `CHANGELOG.md` para Milestone 1 (aún no creados, según el flujo de versionamiento acordado más abajo).
+- **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
 - **Siguiente paso**: Milestone 2 — capa de datos OpenSky (auth OAuth2 + polling + IPC).
 
 ## Seguridad de credenciales (aplica a todos los milestones)
