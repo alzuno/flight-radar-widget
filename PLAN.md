@@ -18,7 +18,8 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 
 - **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
 - **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
-- **Siguiente paso**: Milestone 3 — UI del radar (renderer/React).
+- **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente.
+- **Siguiente paso**: Milestone 4 — Comportamiento de widget de escritorio.
 
 ## Seguridad de credenciales (aplica a todos los milestones)
 
@@ -54,16 +55,18 @@ El repo será público, así que el `client_secret` **nunca** debe llegar a git:
 
 **Fix de scope adicional**: se corrigieron dos errores de `tsc --noEmit` preexistentes de Milestone 1 (no bloqueaban `npm run dev`/`build` porque Vite no type-checkea, pero sí rompían la verificación de tipos): `baseUrl` removido en TypeScript 7 (`tsconfig.web.json`) y el namespace global `JSX` no disponible con React 19 (`App.tsx` ahora usa `React.JSX.Element`). Se añadió `src/shared/types.ts` para compartir el tipo `FlightState` entre main/preload/renderer sin cruzar los límites de los proyectos de tsconfig.
 
-## Milestone 3 — UI del radar (renderer/React)
+## Milestone 3 — UI del radar (renderer/React) ✅ CERRADO
 
-- Componente de radar circular centrado en la casa del usuario (coordenadas configurables), con:
-  - Anillos concéntricos de distancia (ej. 10/25/50 km).
-  - Blips por avión, posicionados por distancia/bearing calculado desde lat/lon del usuario respecto a cada aeronave (fórmula haversine + bearing).
-  - Tooltip/etiqueta al hacer hover: callsign, altitud, velocidad, país de origen.
-  - Opcional: barrido animado tipo radar clásico (CSS/SVG).
-- Manejo de estado con los datos que llegan por IPC desde el main process.
+- [x] `src/shared/geo.ts`: `distanceKm()` (haversine) y `bearingDeg()` (rumbo inicial 0-360°) entre dos coordenadas.
+- [x] IPC adicional `config:get-home-location` (main → renderer, solo lat/lon de casa, nunca credenciales) expuesto como `window.api.getHomeLocation()`.
+- [x] `src/renderer/src/Radar.tsx` + `Radar.css`: radar circular SVG centrado en casa, con anillos concéntricos 10/25/50 km, blips por avión (posición calculada con distancia/bearing, radio recortado a 50 km), barrido animado (`<g>` rotando vía CSS), y tooltip HTML propio (no `<title>` SVG nativo, poco confiable) que sigue el hover.
+- [x] `App.tsx` obtiene `home` una vez al montar y mantiene `flights` en estado, actualizado en cada evento `flights:update` por IPC.
 
-**Verificación**: con la app corriendo, ver aviones reales moviéndose en el radar en tiempo casi real, con hover mostrando datos correctos.
+**Verificación**: ✅ probado en vivo por el usuario en la ventana Electron real: radar con anillos/barrido/blips visible correctamente; comparando dos ciclos de polling consecutivos se confirmó que las posiciones de las aeronaves con telemetría fresca sí se recalculan (ej. `346303`: 40.4344,-3.4963 → 40.4437,-3.5059) — las que no cambian es porque OpenSky devuelve posición "stale" para aeronaves sin ADS-B reciente, comportamiento normal de la API gratuita.
+
+**Bugs encontrados y corregidos durante la verificación manual**:
+- El tooltip nativo (`<title>` dentro de `<circle>` SVG) no disparaba de forma fiable → se reemplazó por un tooltip HTML controlado por estado de React (hover con `onMouseEnter`/`onMouseLeave`).
+- El tooltip quedaba pegado en pantalla al quitar el mouse si mientras tanto llegaba un nuevo ciclo de polling: el hover se guardaba como el objeto `Blip` completo, que se recrea en cada render, así que la comparación por referencia en `onMouseLeave` fallaba tras la actualización. Fix: guardar solo `icao24` (string estable) en el estado de hover y comparar por eso.
 
 ## Milestone 4 — Comportamiento de widget de escritorio
 

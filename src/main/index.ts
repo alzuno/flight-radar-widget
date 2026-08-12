@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { loadConfig } from './config'
 import { OpenSkyClient, startPolling } from './opensky'
@@ -26,6 +26,12 @@ app.whenReady().then(() => {
 
   const config = loadConfig()
   const client = new OpenSkyClient(config)
+
+  // Only the home coordinates are shared with the renderer — never the OpenSky credentials.
+  ipcMain.handle('config:get-home-location', () => ({
+    latitude: config.homeLatitude,
+    longitude: config.homeLongitude
+  }))
 
   startPolling(
     client,

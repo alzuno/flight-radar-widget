@@ -9,3 +9,8 @@ export interface FlightState {
   trueTrack: number | null
   onGround: boolean
 }
+
+export interface HomeLocation {
+  latitude: number
+  longitude: number
+}

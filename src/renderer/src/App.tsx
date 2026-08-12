@@ -1,20 +1,26 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import type { FlightState, HomeLocation } from '../../shared/types'
+import Radar from './Radar'
 
 function App(): React.JSX.Element {
-  const [flightCount, setFlightCount] = useState<number | null>(null)
+  const [home, setHome] = useState<HomeLocation | null>(null)
+  const [flights, setFlights] = useState<FlightState[]>([])
 
   useEffect(() => {
-    return window.api.onFlightsUpdate((flights) => {
-      console.log('[renderer] vuelos recibidos:', flights)
-      setFlightCount(flights.length)
+    window.api.getHomeLocation().then(setHome)
+  }, [])
+
+  useEffect(() => {
+    return window.api.onFlightsUpdate((received) => {
+      console.log('[renderer] vuelos recibidos:', received)
+      setFlights(received)
     })
   }, [])
 
   return (
-    <div style={{ color: 'white', fontFamily: 'sans-serif', textAlign: 'center', marginTop: '40%' }}>
-      Flight Radar Widget
-      <div>{flightCount === null ? 'Cargando...' : `${flightCount} aeronaves`}</div>
+    <div style={{ color: 'white', fontFamily: 'sans-serif', textAlign: 'center' }}>
+      {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
     </div>
   )
 }

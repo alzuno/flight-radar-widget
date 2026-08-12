@@ -2,6 +2,15 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.3.0] — 2026-08-12
+
+### Milestone 3 — UI del radar (renderer/React)
+
+- `src/shared/geo.ts`: `distanceKm()` (haversine) y `bearingDeg()` para calcular posición relativa de cada aeronave respecto a casa.
+- `src/renderer/src/Radar.tsx`: radar circular SVG con anillos de distancia (10/25/50 km), blips por avión, barrido animado y tooltip HTML al hacer hover (callsign, altitud, velocidad, país de origen).
+- Nuevo canal IPC `config:get-home-location` para compartir solo las coordenadas de casa con el renderer (sin exponer credenciales).
+- Verificado en vivo con datos reales de OpenSky, incluyendo la corrección de dos bugs encontrados en la verificación manual (tooltip nativo poco fiable y tooltip que quedaba pegado en pantalla por comparación de estado por referencia en vez de por `icao24`).
+
 ## [0.2.0] — 2026-08-12
 
 ### Milestone 2 — Capa de datos OpenSky (proceso principal)
