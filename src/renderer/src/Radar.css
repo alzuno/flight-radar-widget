@@ -45,6 +45,34 @@
   cursor: default;
 }
 
+.radar-label {
+  fill: #d8ffe4;
+  font-size: 9px;
+  font-family: sans-serif;
+  pointer-events: none;
+}
+
+.radar-trail-segment {
+  stroke: #39ff6a;
+  stroke-width: 1.5;
+  fill: none;
+  pointer-events: none;
+}
+
+.radar-airport {
+  fill: #3a2a05;
+  stroke: #e0a020;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.radar-airport-label {
+  fill: #e0a020;
+  font-size: 9px;
+  font-family: sans-serif;
+  pointer-events: none;
+}
+
 .radar-sweep {
   animation: radar-spin 4s linear infinite;
 }

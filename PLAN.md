@@ -18,7 +18,7 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 
 - **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
 - **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
-- **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente.
+- **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente. Mejoras adicionales aplicadas después del cierre (ver sección "Mejoras post-M3" más abajo): estela histórica, callsign visible, aeropuertos cercanos, radar recentrado en Barajas con radio de 10 km, y fix de un bug real de ventana destruida en el proceso principal.
 - **Siguiente paso**: Milestone 4 — Comportamiento de widget de escritorio.
 
 ## Seguridad de credenciales (aplica a todos los milestones)
@@ -67,6 +67,20 @@ El repo será público, así que el `client_secret` **nunca** debe llegar a git:
 **Bugs encontrados y corregidos durante la verificación manual**:
 - El tooltip nativo (`<title>` dentro de `<circle>` SVG) no disparaba de forma fiable → se reemplazó por un tooltip HTML controlado por estado de React (hover con `onMouseEnter`/`onMouseLeave`).
 - El tooltip quedaba pegado en pantalla al quitar el mouse si mientras tanto llegaba un nuevo ciclo de polling: el hover se guardaba como el objeto `Blip` completo, que se recrea en cada render, así que la comparación por referencia en `onMouseLeave` fallaba tras la actualización. Fix: guardar solo `icao24` (string estable) en el estado de hover y comparar por eso.
+
+### Mejoras post-M3 — radar tipo "radar de aeropuerto"
+
+Tras cerrar M3, el usuario pidió hacer el radar más intuitivo:
+
+- [x] `src/shared/airports.ts` (nuevo): datos estáticos de Barajas (LEMD) y aeródromos menores (Cuatro Vientos LECU, Torrejón LETO, Getafe LEGT), dibujados en el radar como marcadores ámbar con su código, solo si caen dentro del rango visible (`projectInRange`).
+- [x] Traza/estela histórica por avión: `history` en estado de React (últimas 10 posiciones por `icao24`), dibujada como segmentos con opacidad creciente (más viejo → más transparente). Se guarda un "período de gracia" de hasta 3 ciclos de polling sin ver a un avión antes de descartar su estela, para que un hueco puntual en los datos de OpenSky no la borre de golpe.
+- [x] Callsign siempre visible junto a cada blip (`<text>` con `flight.callsign` o `icao24` si no hay callsign), sin reemplazar el tooltip existente (que sigue mostrando altitud/velocidad/país al hover).
+- [x] Radar recentrado en **Barajas (LEMD)** en vez de Bernabéu — se actualizó `HOME_LATITUDE`/`HOME_LONGITUDE` en `.env`/`.env.example` a las coordenadas de LEMD (40.4719, -3.5626). El bbox de consulta a OpenSky no cambió (ya cubre esa zona).
+- [x] Radio del radar reducido a 10 km con anillos en 3/6/10 km (antes 10/25/50 km, luego 10/20/30 km en un primer intento) para un efecto más "radar de aeropuerto" y menos disperso.
+
+**Bug real encontrado y corregido** (no relacionado con los datos de OpenSky, sino con el manejo de la ventana de Electron): `src/main/index.ts` guardaba la referencia a la ventana (`win`) una sola vez al arrancar y nunca comprobaba si seguía viva. Si la ventana se cerraba o se recreaba (p.ej. por el hot-reload de `electron-vite` en desarrollo), el proceso principal —que en macOS sigue corriendo en segundo plano tras cerrar todas las ventanas— seguía intentando `webContents.send()` sobre una ventana ya destruida, lanzando `TypeError: Object has been destroyed` en cada ciclo de polling. Desde ese punto el renderer dejaba de recibir `flights:update` y toda la UI (blips, estelas) quedaba congelada — esto era la causa real de que "los aviones desaparecieran" de forma errática, no (solo) el comportamiento normal de datos intermitentes de OpenSky. Fix: guardar `mainWindow` en una variable de módulo, comprobar `!mainWindow.isDestroyed()` antes de enviar, detener el polling (`stopPolling()`) en `window-all-closed`, y añadir el manejador estándar de `activate` de macOS para recrear la ventana si se vuelve a abrir la app sin ventanas.
+
+**Verificación**: ✅ confirmado en vivo por el usuario tras el fix — 6+ ciclos de polling consecutivos sin errores en consola, radar centrado en Barajas con radio de 10 km, estela y callsigns visibles de forma estable.
 
 ## Milestone 4 — Comportamiento de widget de escritorio
 

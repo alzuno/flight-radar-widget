@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.4.0] — 2026-08-12
+
+### Mejoras post-Milestone 3 — radar más intuitivo
+
+- `src/shared/airports.ts`: marcadores ámbar para Barajas y aeródromos menores cercanos (Cuatro Vientos, Torrejón, Getafe), dibujados solo si caen dentro del rango visible.
+- Traza/estela histórica por avión (últimas 10 posiciones, con opacidad decreciente hacia el pasado y un período de gracia de 3 ciclos de polling ante huecos puntuales en los datos de OpenSky).
+- Callsign siempre visible junto a cada blip, además del tooltip existente al hover.
+- Radar recentrado en Barajas (LEMD) con radio reducido a 10 km (anillos 3/6/10 km), para un efecto más "radar de aeropuerto".
+- **Fix de bug real**: el proceso principal (`src/main/index.ts`) seguía enviando actualizaciones a una ventana de Electron ya destruida (`webContents.send` sobre un `BrowserWindow` cerrado/recreado), lo que congelaba la UI y generaba errores silenciosos en cada ciclo de polling. Se corrigió comprobando `isDestroyed()`, deteniendo el polling al cerrar la ventana y añadiendo el manejo estándar de `activate` en macOS.
+
 ## [0.3.0] — 2026-08-12
 
 ### Milestone 3 — UI del radar (renderer/React)

@@ -3,6 +3,8 @@ import { join } from 'path'
 import { loadConfig } from './config'
 import { OpenSkyClient, startPolling } from './opensky'
 
+let mainWindow: BrowserWindow | null = null
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 400,
@@ -18,11 +20,15 @@ function createWindow(): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  win.on('closed', () => {
+    mainWindow = null
+  })
+
   return win
 }
 
 app.whenReady().then(() => {
-  const win = createWindow()
+  mainWindow = createWindow()
 
   const config = loadConfig()
   const client = new OpenSkyClient(config)
@@ -33,21 +39,30 @@ app.whenReady().then(() => {
     longitude: config.homeLongitude
   }))
 
-  startPolling(
+  const stopPolling = startPolling(
     client,
     config.pollIntervalSeconds,
     (flights) => {
       console.log(`[opensky] ${flights.length} aeronaves recibidas`)
-      win.webContents.send('flights:update', flights)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('flights:update', flights)
+      }
     },
     (err) => {
       console.error('[opensky] error de polling:', err)
     }
   )
-})
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.on('window-all-closed', () => {
+    stopPolling()
+    if (process.platform !== 'darwin') {
+      app.quit()
+    }
+  })
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createWindow()
+    }
+  })
 })

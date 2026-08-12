@@ -1,6 +1,6 @@
 {
   "name": "flight-radar-widget",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "",
   "main": "./out/main/index.js",
   "scripts": {
