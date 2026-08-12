@@ -82,15 +82,18 @@ Tras cerrar M3, el usuario pidió hacer el radar más intuitivo:
 
 **Verificación**: ✅ confirmado en vivo por el usuario tras el fix — 6+ ciclos de polling consecutivos sin errores en consola, radar centrado en Barajas con radio de 10 km, estela y callsigns visibles de forma estable.
 
-## Milestone 4 — Comportamiento de widget de escritorio
+## Milestone 4 — Comportamiento de widget de escritorio (en curso)
 
-- Configurar `BrowserWindow`: `frame: false`, `transparent: true`, `resizable: false`, `hasShadow: false`.
-- `win.setAlwaysOnTop(true, 'desktop')` para fijarlo al nivel del escritorio (detrás de apps, encima del wallpaper).
-- `win.setVisibleOnAllWorkspaces(true)` para que persista al cambiar de escritorio virtual.
-- Auto-arranque: `app.setLoginItemSettings({ openAtLogin: true })`, con un ítem de menú (tray icon) para activar/desactivar.
-- Icono en la barra de menú (tray) con opciones básicas: mostrar/ocultar, salir, abrir configuración.
+- [x] `BrowserWindow`: `frame: false`, `transparent: true`, `resizable: false`, `hasShadow: false`.
+- [x] `win.setAlwaysOnTop(true, 'desktop')` para fijarlo al nivel del escritorio (detrás de apps, encima del wallpaper).
+- [x] `win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })` para que persista al cambiar de escritorio virtual/Spaces.
+- [x] Auto-arranque: se activa `app.setLoginItemSettings({ openAtLogin: true })` una sola vez en el primer arranque (marcador en `userData`, ya que `electron-store` llega en Milestone 5), con ítem de menú tipo checkbox en el tray para activar/desactivar libremente después sin que se re-active solo en cada reinicio.
+- [x] Icono en la barra de menú (tray, `resources/trayIconTemplate.png`) con: mostrar/ocultar, iniciar con macOS (checkbox), configuración (deshabilitado, placeholder hasta Milestone 5), salir. Cerrar la ventana (no hay barra de título, pero por si acaso) solo la oculta; "Salir" del tray sí termina el proceso.
+- [x] Widget arrastrable: el fondo de la ventana es zona de drag (`-webkit-app-region: drag`) salvo el contenedor del radar, que queda `no-drag` para no romper el hover/tooltip de los blips (los SVG no reconocen `no-drag` de forma fiable, así que se excluye a nivel de contenedor HTML).
 
-**Verificación**: reiniciar sesión de macOS y confirmar que el widget arranca solo, se ve pegado al escritorio y no interfiere con el uso normal del Mac.
+**Verificado en vivo por el usuario**: ventana sin bordes/transparente mostrando el wallpaper real de macOS a través suyo (confirma `transparent` + nivel `'desktop'`), menú del tray funcionando (mostrar/ocultar, iniciar con macOS, salir), widget arrastrable desde el margen fuera del círculo del radar, y tooltip de blips funcionando tras el fix de drag regions.
+
+**Pendiente para cerrar milestone**: reiniciar sesión de macOS y confirmar que el widget arranca solo (auto-login) y no interfiere con el uso normal del Mac — esto solo lo puede probar el usuario.
 
 ## Milestone 5 — Pulido y empaquetado
 
