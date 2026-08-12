@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import type { FlightState, HomeLocation } from '../../shared/types'
+import './App.css'
 import Radar from './Radar'
 
 function App(): React.JSX.Element {
@@ -19,7 +20,17 @@ function App(): React.JSX.Element {
   }, [])
 
   return (
-    <div style={{ color: 'white', fontFamily: 'sans-serif', textAlign: 'center' }}>
+    <div
+      className="app-drag-region"
+      style={{
+        color: 'white',
+        fontFamily: 'sans-serif',
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
     </div>
   )

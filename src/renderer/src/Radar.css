@@ -1,5 +1,10 @@
 .radar-container {
   position: relative;
+  /* -webkit-app-region: no-drag on SVG children isn't reliably honored by
+     Electron/Chromium (it only recognizes HTML layout boxes), so opt the
+     whole HTML container out of the parent's drag region instead — the
+     margin around it (inside the drag-enabled window body) stays draggable. */
+  -webkit-app-region: no-drag;
 }
 
 .radar-tooltip {
