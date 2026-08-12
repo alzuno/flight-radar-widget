@@ -14,6 +14,12 @@ Decisiones ya tomadas con el usuario:
 
 El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para revisar antes de seguir.
 
+## Estado actual
+
+- **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo).
+- **Pendiente antes de Milestone 2**: tag `v0.1.0` y entrada en `CHANGELOG.md` para Milestone 1 (aún no creados, según el flujo de versionamiento acordado más abajo).
+- **Siguiente paso**: Milestone 2 — capa de datos OpenSky (auth OAuth2 + polling + IPC).
+
 ## Seguridad de credenciales (aplica a todos los milestones)
 
 El repo será público, así que el `client_secret` **nunca** debe llegar a git:
@@ -22,18 +28,20 @@ El repo será público, así que el `client_secret` **nunca** debe llegar a git:
 - Se añade `.env.example` con las claves vacías, para que el propio usuario (u otros) sepan qué configurar.
 - El intercambio de token OAuth2 y las llamadas a OpenSky se hacen en el **proceso principal** (main process) de Electron, no en el renderer, para no exponer el secreto ni siquiera indirectamente vía devtools.
 
-## Milestone 1 — Setup del repo y estructura base
+## Milestone 1 — Setup del repo y estructura base ✅ CERRADO
 
-- Renombrar la carpeta local `OpenSky` → `flight-radar-widget`.
-- Inicializar git, crear `.gitignore` (según sección de seguridad arriba), mover `api/opensky_credentials.json` fuera del árbol versionado (o confirmar que ya está ignorado) y crear `.env.example`.
-- Crear el repo público en GitHub (`gh repo create alzuno/flight-radar-widget --public --source=. --remote=origin`) y hacer el primer push.
-- Scaffolding de Electron + Vite + React (usando `electron-vite` o plantilla equivalente), con estructura:
-  - `src/main/` — proceso principal (auth OpenSky, polling, ventana)
-  - `src/renderer/` — UI React del radar
-  - `src/main/opensky.ts` — cliente OpenSky (token + fetch de states)
-- README inicial con descripción del proyecto y cómo configurar `.env`.
+- [x] Renombrar la carpeta local `OpenSky` → `flight-radar-widget`.
+- [x] Inicializar git, crear `.gitignore` (según sección de seguridad arriba), mover `api/opensky_credentials.json` fuera del árbol versionado (o confirmar que ya está ignorado) y crear `.env.example`.
+- [x] Crear el repo público en GitHub (`gh repo create alzuno/flight-radar-widget --public --source=. --remote=origin --push`) y hacer el primer push.
+- [x] Scaffolding de Electron + Vite + React (con `electron-vite`), con estructura:
+  - `src/main/index.ts` — proceso principal (ventana placeholder; auth OpenSky y polling quedan para Milestone 2)
+  - `src/preload/index.ts` — puente `contextBridge`
+  - `src/renderer/src/` — UI React (`App.tsx`, `main.tsx`, `index.html`)
+  - Nota: `src/main/opensky.ts` (cliente OpenSky) **no se creó aún** — corresponde a Milestone 2.
+- [x] README inicial con descripción del proyecto y cómo configurar `.env`.
+- [x] `CLAUDE.md` creado con comandos y arquitectura del repo para futuras sesiones (incluye nota sobre `ELECTRON_RUN_AS_NODE` en el sandbox).
 
-**Verificación**: `npm run dev` levanta una ventana Electron básica (placeholder), y el repo es visible en `https://github.com/alzuno/flight-radar-widget`.
+**Verificación**: ✅ `npm run dev` levanta una ventana Electron real (se confirmó que el sandbox de ejecución define `ELECTRON_RUN_AS_NODE=1`, lo que rompe el arranque de Electron; hay que correrlo con `env -u ELECTRON_RUN_AS_NODE npm run dev`). Repo visible en `https://github.com/alzuno/flight-radar-widget`.
 
 ## Milestone 2 — Capa de datos OpenSky (proceso principal)
 
