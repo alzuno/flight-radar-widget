@@ -19,7 +19,9 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 - **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
 - **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
 - **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente. Mejoras adicionales aplicadas después del cierre (ver sección "Mejoras post-M3" más abajo): estela histórica, callsign visible, aeropuertos cercanos, radar recentrado en Barajas con radio de 10 km, y fix de un bug real de ventana destruida en el proceso principal.
-- **Siguiente paso**: Milestone 4 — Comportamiento de widget de escritorio.
+- **Milestone 4: en curso.** Comportamiento de widget de escritorio implementado y verificado en vivo salvo un punto: falta reiniciar sesión de macOS para confirmar el auto-arranque (solo lo puede probar el usuario).
+- **Milestone 5: en curso.** Slice 1 (pantalla de configuración persistida) implementada; falta empaquetado con `electron-builder` y documentación final de README.
+- **Siguiente paso**: verificar el auto-login pendiente de Milestone 4 (usuario) y avanzar con el empaquetado de Milestone 5.
 
 ## Seguridad de credenciales (aplica a todos los milestones)
 
@@ -109,11 +111,20 @@ Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo d
 
 **Verificación**: 2 rondas de 8-9 capturas de pantalla consecutivas (`screencapture`, ~26-28s entre cada una) contrastadas contra llamadas directas a `/states/all` en paralelo — posiciones, distancias y estelas de blips coinciden con la trayectoria real reportada por OpenSky en ambas rondas (antes y después de ampliar el bbox).
 
-## Milestone 5 — Pulido y empaquetado
+## Milestone 5 — Pulido y empaquetado (en curso)
 
-- Pantalla/mini-formulario de configuración (coordenadas de casa, radio del bounding box, intervalo de polling) persistida en disco (ej. `electron-store`).
-- Empaquetado con `electron-builder` para generar un `.app`/`.dmg` instalable localmente.
-- Documentación final en README (setup, configuración, capturas).
+### Slice 1 — Pantalla de configuración persistida ✅
+
+- [x] `src/shared/types.ts`: nuevo tipo `AppSettings` (home lat/lon, radio del bbox en km, intervalo de polling) y `SaveSettingsResult`.
+- [x] `src/shared/geo.ts`: nuevo helper `radiusKmToBbox()` (radio en km → bbox de 4 esquinas alrededor de casa).
+- [x] `src/main/settings.ts` (nuevo): persistencia en `settings.json` dentro de `app.getPath('userData')` — sin dependencias nuevas (mismo enfoque de archivo a mano que `enableAutoLaunchOnFirstRun()`, en vez de `electron-store`, que es ESM-only desde la v9 y el proyecto es `"type": "commonjs"`). Siembra los valores desde `.env` en el primer arranque (el radio del bbox se deriva como la distancia máxima esquina-a-casa del bbox actual de `.env`) y valida rangos razonables antes de guardar.
+- [x] `src/main/opensky.ts`: `OpenSkyClient.updateBbox()` muta el bbox en el propio cliente sin perder el token OAuth2 cacheado (evita una reautenticación innecesaria al cambiar el radio).
+- [x] `src/main/index.ts`: `applySettings()` para aplicar cambios en caliente (para/relanza el polling con el nuevo intervalo, actualiza el bbox, persiste y notifica al renderer vía `settings:updated`); nuevos canales IPC `settings:get`/`settings:save` (reemplazan `config:get-home-location`); el item de tray "Configuración (próximamente)" pasa a estar habilitado y abre el panel en el renderer.
+- [x] `src/preload/index.ts` + `src/renderer/src/vite-env.d.ts`: `window.api` expone `getSettings`, `saveSettings`, `onSettingsUpdated`, `onSettingsOpenRequest` (se retira `getHomeLocation`).
+- [x] `src/renderer/src/SettingsPanel.tsx` + `.css` (nuevo): formulario con los 4 campos, validación de errores mostrada inline, estilo reutilizado de la paleta "radar CRT" existente (`Radar.css`).
+- [x] `src/renderer/src/App.tsx`: botón de engranaje (esquina opuesta a los controles de zoom del radar) que abre el panel como overlay sobre el radar, sin desmontarlo (conserva zoom/estela); `home` ahora se deriva de `settings` en vez de la llamada IPC retirada.
+
+**Pendiente para cerrar Milestone 5**: empaquetado con `electron-builder` (`.app`/`.dmg` instalable localmente) y documentación final en README (setup, configuración, capturas).
 
 **Verificación**: generar el build empaquetado, instalarlo, y correrlo como app standalone (sin `npm run dev`).
 

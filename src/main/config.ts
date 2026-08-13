@@ -1,4 +1,5 @@
 import { config as loadDotenv } from 'dotenv'
+import type { Bbox } from '../shared/geo'
 
 loadDotenv()
 
@@ -23,12 +24,7 @@ export interface AppConfig {
   openSkyClientSecret: string
   homeLatitude: number
   homeLongitude: number
-  bbox: {
-    lamin: number
-    lomin: number
-    lamax: number
-    lomax: number
-  }
+  bbox: Bbox
   pollIntervalSeconds: number
 }
 

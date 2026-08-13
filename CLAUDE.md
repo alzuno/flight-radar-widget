@@ -37,3 +37,4 @@ Config: `electron.vite.config.ts` defines the three separate build targets (main
 - OpenSky OAuth2 credentials live only in a local `.env` (git-ignored), read only by the main process — never expose them to the renderer, not even indirectly via devtools.
 - `api/opensky_credentials.json` and `.env` are git-ignored; `.env.example` documents the required keys (OpenSky client id/secret, home lat/lon, bounding box, poll interval) with empty/placeholder values.
 - This repo is public — any change touching credential handling must keep the secret exclusively in the main process.
+- Since Milestone 5, user-editable runtime settings (home lat/lon, bbox radius, poll interval) persist in `settings.json` under `app.getPath('userData')` (`src/main/settings.ts`), separate from `.env`, which now only seeds that file on first run. `settings.json` never contains OpenSky credentials — only `.env` does.

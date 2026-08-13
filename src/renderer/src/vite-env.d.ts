@@ -1,10 +1,13 @@
 /// <reference types="vite/client" />
 
-import type { FlightState, HomeLocation } from '../../shared/types'
+import type { AppSettings, FlightState, SaveSettingsResult } from '../../shared/types'
 
 export interface ExposedApi {
   onFlightsUpdate: (callback: (flights: FlightState[]) => void) => () => void
-  getHomeLocation: () => Promise<HomeLocation>
+  getSettings: () => Promise<AppSettings>
+  saveSettings: (settings: AppSettings) => Promise<SaveSettingsResult>
+  onSettingsUpdated: (callback: (settings: AppSettings) => void) => () => void
+  onSettingsOpenRequest: (callback: () => void) => () => void
 }
 
 declare global {

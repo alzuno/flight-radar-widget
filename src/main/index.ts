@@ -3,14 +3,16 @@ import { existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { loadConfig } from './config'
 import { OpenSkyClient, startPolling } from './opensky'
+import { loadOrSeedSettings, saveSettings, validateSettings } from './settings'
+import { radiusKmToBbox } from '../shared/geo'
+import type { AppSettings, FlightState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 
-// electron-store (persisted settings) lands in Milestone 5; for now a marker
-// file is enough to enable auto-launch once without fighting the user's
-// later choice to disable it from the tray menu on every subsequent launch.
+// A marker file is enough to enable auto-launch once without fighting the
+// user's later choice to disable it from the tray menu on every subsequent launch.
 function enableAutoLaunchOnFirstRun(): void {
   const markerPath = join(app.getPath('userData'), '.auto-launch-initialized')
   if (existsSync(markerPath)) return
@@ -85,8 +87,11 @@ function buildTrayMenu(): Menu {
       }
     },
     {
-      label: 'Configuración (próximamente)',
-      enabled: false
+      label: 'Configuración',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.webContents.send('settings:open-request')
+      }
     },
     { type: 'separator' },
     {
@@ -123,27 +128,55 @@ app.whenReady().then(() => {
   tray = createTray()
 
   const config = loadConfig()
-  const client = new OpenSkyClient(config)
+  let currentSettings = loadOrSeedSettings(config)
+  const client = new OpenSkyClient({
+    ...config,
+    bbox: radiusKmToBbox(
+      { latitude: currentSettings.homeLatitude, longitude: currentSettings.homeLongitude },
+      currentSettings.bboxRadiusKm
+    )
+  })
 
-  // Only the home coordinates are shared with the renderer — never the OpenSky credentials.
-  ipcMain.handle('config:get-home-location', () => ({
-    latitude: config.homeLatitude,
-    longitude: config.homeLongitude
-  }))
+  let stopPolling: () => void = () => {}
 
-  const stopPolling = startPolling(
-    client,
-    config.pollIntervalSeconds,
-    (flights) => {
-      console.log(`[opensky] ${flights.length} aeronaves recibidas`)
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('flights:update', flights)
-      }
-    },
-    (err) => {
-      console.error('[opensky] error de polling:', err)
+  function onFlights(flights: FlightState[]): void {
+    console.log(`[opensky] ${flights.length} aeronaves recibidas`)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('flights:update', flights)
     }
-  )
+  }
+
+  function onPollError(err: unknown): void {
+    console.error('[opensky] error de polling:', err)
+  }
+
+  function applySettings(settings: AppSettings): void {
+    stopPolling()
+    client.updateBbox(
+      radiusKmToBbox(
+        { latitude: settings.homeLatitude, longitude: settings.homeLongitude },
+        settings.bboxRadiusKm
+      )
+    )
+    stopPolling = startPolling(client, settings.pollIntervalSeconds, onFlights, onPollError)
+    currentSettings = settings
+    saveSettings(settings)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('settings:updated', settings)
+    }
+  }
+
+  stopPolling = startPolling(client, currentSettings.pollIntervalSeconds, onFlights, onPollError)
+
+  // Only settings (never the OpenSky credentials) are shared with the renderer.
+  ipcMain.handle('settings:get', () => currentSettings)
+
+  ipcMain.handle('settings:save', (_event, input: AppSettings) => {
+    const result = validateSettings(input)
+    if (!result.ok) return result
+    applySettings(result.settings)
+    return { ok: true }
+  })
 
   app.on('before-quit', () => {
     isQuitting = true

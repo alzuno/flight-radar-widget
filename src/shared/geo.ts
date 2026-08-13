@@ -1,6 +1,7 @@
 import type { HomeLocation } from './types'
 
 const EARTH_RADIUS_KM = 6371
+const KM_PER_DEGREE_LAT = 111
 
 function toRadians(deg: number): number {
   return (deg * Math.PI) / 180
@@ -31,4 +32,24 @@ export function bearingDeg(from: HomeLocation, to: HomeLocation): number {
 
   const bearing = (Math.atan2(y, x) * 180) / Math.PI
   return (bearing + 360) % 360
+}
+
+export interface Bbox {
+  lamin: number
+  lomin: number
+  lamax: number
+  lomax: number
+}
+
+/** Bounding box of `radiusKm` around `home`, approximating a circle with a square. */
+export function radiusKmToBbox(home: HomeLocation, radiusKm: number): Bbox {
+  const latDelta = radiusKm / KM_PER_DEGREE_LAT
+  const lonDelta = radiusKm / (KM_PER_DEGREE_LAT * Math.cos(toRadians(home.latitude)))
+
+  return {
+    lamin: home.latitude - latDelta,
+    lomin: home.longitude - lonDelta,
+    lamax: home.latitude + latDelta,
+    lomax: home.longitude + lonDelta
+  }
 }

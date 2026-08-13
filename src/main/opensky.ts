@@ -1,4 +1,5 @@
 import type { AppConfig } from './config'
+import type { Bbox } from '../shared/geo'
 import type { FlightState } from '../shared/types'
 
 const TOKEN_URL =
@@ -17,6 +18,11 @@ export class OpenSkyClient {
   private cachedToken: CachedToken | null = null
 
   constructor(private readonly config: AppConfig) {}
+
+  /** Updates the query bbox in place, preserving the cached OAuth2 token. */
+  updateBbox(bbox: Bbox): void {
+    this.config.bbox = bbox
+  }
 
   private async fetchToken(): Promise<CachedToken> {
     const body = new URLSearchParams({

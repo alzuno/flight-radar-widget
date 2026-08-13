@@ -1,0 +1,92 @@
+.settings-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 20, 10, 0.95);
+  border: 1px solid #2fa860;
+  border-radius: 8px;
+  z-index: 20;
+  -webkit-app-region: no-drag;
+}
+
+.settings-form {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: sans-serif;
+  color: #d8ffe4;
+}
+
+.settings-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: #39ff6a;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.settings-field input {
+  background: rgba(5, 20, 10, 0.85);
+  border: 1px solid #2fa860;
+  border-radius: 4px;
+  color: #d8ffe4;
+  font-size: 12px;
+  font-family: sans-serif;
+  padding: 4px 6px;
+}
+
+.settings-field input:focus {
+  outline: none;
+  border-color: #39ff6a;
+}
+
+.settings-error {
+  font-size: 11px;
+  color: #ff6a6a;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.settings-button {
+  border-radius: 4px;
+  background: rgba(5, 20, 10, 0.85);
+  border: 1px solid #2fa860;
+  color: #d8ffe4;
+  font-size: 12px;
+  font-family: sans-serif;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.settings-button:not(:disabled):hover {
+  background: rgba(47, 168, 96, 0.25);
+}
+
+.settings-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.settings-button-primary {
+  border-color: #39ff6a;
+  color: #05140a;
+  background: #39ff6a;
+}
+
+.settings-button-primary:not(:disabled):hover {
+  background: #2fe25c;
+}

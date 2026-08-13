@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { FlightState, HomeLocation } from '../shared/types'
+import type { AppSettings, FlightState, SaveSettingsResult } from '../shared/types'
 
 contextBridge.exposeInMainWorld('api', {
   onFlightsUpdate(callback: (flights: FlightState[]) => void): () => void {
@@ -7,7 +7,20 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('flights:update', listener)
     return () => ipcRenderer.removeListener('flights:update', listener)
   },
-  getHomeLocation(): Promise<HomeLocation> {
-    return ipcRenderer.invoke('config:get-home-location')
+  getSettings(): Promise<AppSettings> {
+    return ipcRenderer.invoke('settings:get')
+  },
+  saveSettings(settings: AppSettings): Promise<SaveSettingsResult> {
+    return ipcRenderer.invoke('settings:save', settings)
+  },
+  onSettingsUpdated(callback: (settings: AppSettings) => void): () => void {
+    const listener = (_event: unknown, settings: AppSettings): void => callback(settings)
+    ipcRenderer.on('settings:updated', listener)
+    return () => ipcRenderer.removeListener('settings:updated', listener)
+  },
+  onSettingsOpenRequest(callback: () => void): () => void {
+    const listener = (): void => callback()
+    ipcRenderer.on('settings:open-request', listener)
+    return () => ipcRenderer.removeListener('settings:open-request', listener)
   }
 })

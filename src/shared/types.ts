@@ -14,3 +14,12 @@ export interface HomeLocation {
   latitude: number
   longitude: number
 }
+
+export interface AppSettings {
+  homeLatitude: number
+  homeLongitude: number
+  bboxRadiusKm: number
+  pollIntervalSeconds: number
+}
+
+export type SaveSettingsResult = { ok: true } | { ok: false; error: string }

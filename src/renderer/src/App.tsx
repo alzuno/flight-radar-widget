@@ -1,15 +1,17 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import type { FlightState, HomeLocation } from '../../shared/types'
+import type { AppSettings, FlightState } from '../../shared/types'
 import './App.css'
 import Radar from './Radar'
+import SettingsPanel from './SettingsPanel'
 
 function App(): React.JSX.Element {
-  const [home, setHome] = useState<HomeLocation | null>(null)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
   const [flights, setFlights] = useState<FlightState[]>([])
+  const [panelOpen, setPanelOpen] = useState(false)
 
   useEffect(() => {
-    window.api.getHomeLocation().then(setHome)
+    window.api.getSettings().then(setSettings)
   }, [])
 
   useEffect(() => {
@@ -18,6 +20,18 @@ function App(): React.JSX.Element {
       setFlights(received)
     })
   }, [])
+
+  useEffect(() => {
+    return window.api.onSettingsUpdated(setSettings)
+  }, [])
+
+  useEffect(() => {
+    return window.api.onSettingsOpenRequest(() => setPanelOpen(true))
+  }, [])
+
+  const home = settings
+    ? { latitude: settings.homeLatitude, longitude: settings.homeLongitude }
+    : null
 
   return (
     <div
@@ -31,7 +45,26 @@ function App(): React.JSX.Element {
         justifyContent: 'center'
       }}
     >
-      {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
+      <div className="app-widget-frame">
+        {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
+
+        <button
+          type="button"
+          className="app-settings-toggle"
+          onClick={() => setPanelOpen(true)}
+          aria-label="Abrir configuración"
+        >
+          ⚙
+        </button>
+
+        {panelOpen && settings && (
+          <SettingsPanel
+            settings={settings}
+            onSave={(next) => window.api.saveSettings(next)}
+            onClose={() => setPanelOpen(false)}
+          />
+        )}
+      </div>
     </div>
   )
 }

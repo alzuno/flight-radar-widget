@@ -13,3 +13,30 @@ body,
   -webkit-app-region: drag;
   -webkit-user-select: none;
 }
+
+.app-widget-frame {
+  position: relative;
+}
+
+.app-settings-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: rgba(5, 20, 10, 0.85);
+  border: 1px solid #2fa860;
+  color: #d8ffe4;
+  font-size: 12px;
+  line-height: 1;
+  font-family: sans-serif;
+  cursor: pointer;
+  padding: 0;
+  z-index: 15;
+  -webkit-app-region: no-drag;
+}
+
+.app-settings-toggle:hover {
+  background: rgba(47, 168, 96, 0.25);
+}
