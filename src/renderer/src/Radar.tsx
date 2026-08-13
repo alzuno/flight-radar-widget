@@ -13,8 +13,11 @@ interface RadarProps {
 const SIZE = 320
 const CENTER = SIZE / 2
 const RADIUS = 140
-const RING_DISTANCES_KM = [3, 6, 10]
-const MAX_RANGE_KM = RING_DISTANCES_KM[RING_DISTANCES_KM.length - 1]
+const ZOOM_LEVELS = [
+  [3, 6, 10],
+  [6, 12, 18],
+  [10, 20, 30]
+]
 const TRAIL_LENGTH = 10
 const MAX_MISSED_CYCLES = 3
 
@@ -34,9 +37,14 @@ interface Blip {
   y: number
 }
 
-function projectAt(home: HomeLocation, target: HomeLocation, distance: number): Point {
+function projectAt(
+  home: HomeLocation,
+  target: HomeLocation,
+  distance: number,
+  maxRangeKm: number
+): Point {
   const bearing = bearingDeg(home, target)
-  const radius = (distance / MAX_RANGE_KM) * RADIUS
+  const radius = (distance / maxRangeKm) * RADIUS
   const angleRad = (bearing * Math.PI) / 180
 
   return {
@@ -45,31 +53,45 @@ function projectAt(home: HomeLocation, target: HomeLocation, distance: number): 
   }
 }
 
-/** Projects a point, clamping it to the outer ring if it's beyond MAX_RANGE_KM. */
-function projectClamped(home: HomeLocation, target: HomeLocation): Point {
-  const distance = Math.min(distanceKm(home, target), MAX_RANGE_KM)
-  return projectAt(home, target, distance)
+/** Projects a point, clamping it to the outer ring if it's beyond maxRangeKm. */
+function projectClamped(home: HomeLocation, target: HomeLocation, maxRangeKm: number): Point {
+  const distance = Math.min(distanceKm(home, target), maxRangeKm)
+  return projectAt(home, target, distance, maxRangeKm)
 }
 
 /** Projects a point, or null if it falls outside the radar's range. */
-function projectInRange(home: HomeLocation, target: HomeLocation): Point | null {
+function projectInRange(home: HomeLocation, target: HomeLocation, maxRangeKm: number): Point | null {
   const distance = distanceKm(home, target)
-  return distance > MAX_RANGE_KM ? null : projectAt(home, target, distance)
+  return distance > maxRangeKm ? null : projectAt(home, target, distance, maxRangeKm)
 }
 
-function toBlip(home: HomeLocation, flight: FlightState): Blip | null {
+function toBlip(home: HomeLocation, flight: FlightState, maxRangeKm: number): Blip | null {
   if (flight.latitude === null || flight.longitude === null) return null
 
   const target = { latitude: flight.latitude, longitude: flight.longitude }
-  return { flight, ...projectClamped(home, target) }
+  return { flight, ...projectClamped(home, target, maxRangeKm) }
 }
 
 function Radar({ home, flights }: RadarProps): React.JSX.Element {
   const [hoveredIcao24, setHoveredIcao24] = useState<string | null>(null)
   const [history, setHistory] = useState<Map<string, TrailEntry>>(new Map())
+  const [zoomIndex, setZoomIndex] = useState(0)
 
-  const blips = flights
-    .map((flight) => toBlip(home, flight))
+  const ringDistancesKm = ZOOM_LEVELS[zoomIndex]
+  const maxRangeKm = ringDistancesKm[ringDistancesKm.length - 1]
+
+  const changeZoom = (delta: number): void => {
+    setZoomIndex((current) => {
+      const next = Math.min(Math.max(current + delta, 0), ZOOM_LEVELS.length - 1)
+      if (next !== current) setHistory(new Map())
+      return next
+    })
+  }
+
+  const airborneFlights = flights.filter((flight) => !flight.onGround)
+
+  const blips = airborneFlights
+    .map((flight) => toBlip(home, flight, maxRangeKm))
     .filter((blip): blip is Blip => blip !== null)
 
   const hovered = blips.find((blip) => blip.flight.icao24 === hoveredIcao24) ?? null
@@ -107,7 +129,7 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
   const airportBlips = NEARBY_AIRPORTS.filter((airport) => distanceKm(home, airport) > 0.5)
     .map((airport) => ({
       airport,
-      point: projectInRange(home, airport)
+      point: projectInRange(home, airport, maxRangeKm)
     }))
     .filter(
       (entry): entry is { airport: (typeof NEARBY_AIRPORTS)[number]; point: Point } =>
@@ -119,22 +141,22 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
       <svg className="radar" width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
         <circle className="radar-background" cx={CENTER} cy={CENTER} r={RADIUS} />
 
-        {RING_DISTANCES_KM.map((km) => (
+        {ringDistancesKm.map((km) => (
           <circle
             key={km}
             className="radar-ring"
             cx={CENTER}
             cy={CENTER}
-            r={(km / MAX_RANGE_KM) * RADIUS}
+            r={(km / maxRangeKm) * RADIUS}
           />
         ))}
 
-        {RING_DISTANCES_KM.map((km) => (
+        {ringDistancesKm.map((km) => (
           <text
             key={km}
             className="radar-ring-label"
             x={CENTER + 4}
-            y={CENTER - (km / MAX_RANGE_KM) * RADIUS}
+            y={CENTER - (km / maxRangeKm) * RADIUS}
           >
             {km} km
           </text>
@@ -209,6 +231,27 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
           </g>
         ))}
       </svg>
+
+      <div className="radar-zoom-controls">
+        <button
+          type="button"
+          className="radar-zoom-button"
+          onClick={() => changeZoom(-1)}
+          disabled={zoomIndex === 0}
+          aria-label="Acercar radar"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="radar-zoom-button"
+          onClick={() => changeZoom(1)}
+          disabled={zoomIndex === ZOOM_LEVELS.length - 1}
+          aria-label="Alejar radar"
+        >
+          −
+        </button>
+      </div>
 
       {hovered && (
         <div className="radar-tooltip" style={{ left: hovered.x, top: hovered.y }}>

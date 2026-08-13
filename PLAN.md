@@ -95,6 +95,20 @@ Tras cerrar M3, el usuario pidió hacer el radar más intuitivo:
 
 **Pendiente para cerrar milestone**: reiniciar sesión de macOS y confirmar que el widget arranca solo (auto-login) y no interfiere con el uso normal del Mac — esto solo lo puede probar el usuario.
 
+### Mejoras adicionales (durante M4) — radar más preciso y navegable
+
+Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo de opensky-network.org y pidió ajustes adicionales:
+
+- [x] Filtro de aviones en tierra: `src/renderer/src/Radar.tsx` descarta los vuelos con `onGround: true` antes de calcular blips (el campo ya se parseaba en `src/main/opensky.ts` desde M2, pero no se usaba en el renderer).
+- [x] Niveles de zoom/alcance: `ZOOM_LEVELS` con 3 presets de anillos (3/6/10 km, 6/12/18 km, 10/20/30 km), controlados con botones `+`/`−` flotantes (esquina inferior izquierda del radar). El estado de zoom vive solo en memoria de React (no persiste entre reinicios; la persistencia llega con la config de Milestone 5). Al cambiar de nivel se limpia la estela histórica para evitar segmentos con escala inconsistente.
+- [x] Bounding box de consulta a OpenSky ampliado de ~9-16 km a ~35 km en las 4 direcciones alrededor de casa (`BBOX_*` en `.env`/`.env.example`), para cubrir el nivel de zoom más lejano (30 km) sin que los aviones desaparezcan del feed antes de salir del radar visual.
+
+**Bug real diagnosticado (no de nuestro código)**: se detectó que algunos aviones desaparecían del radar muy rápido tras alejarse de casa. Verificado con llamadas directas a `/states/all` en vivo: el bbox original tenía bordes asimétricos muy cercanos a casa (norte a 8.7 km, este a 9.5 km), así que un avión despegando podía salir literalmente de la zona de consulta a OpenSky en un solo ciclo de polling (~25s), independientemente del zoom visual del radar. Confirmado el mismo patrón dos veces (`ANE4081` y luego `RYR2CF`) antes y después de ampliar el bbox — con el bbox ampliado, `RYR2CF` siguió visible (clampeado al borde del anillo) mucho más lejos en vez de desaparecer.
+
+**Estelas con posición "stale"**: se confirmó con dos llamadas reales a `/states/all` separadas 28s que varios aviones en vuelo (`onGround: false`) devuelven la misma posición en ambos polls — cobertura desigual de receptores voluntarios de OpenSky, no un bug de polling/render. El mapa en vivo de opensky-network.org disimula esto con dead-reckoning (extrapolando posición con `velocity`/`trueTrack` entre fixes reales) — el usuario decidió posponer esa mejora a un milestone futuro.
+
+**Verificación**: 2 rondas de 8-9 capturas de pantalla consecutivas (`screencapture`, ~26-28s entre cada una) contrastadas contra llamadas directas a `/states/all` en paralelo — posiciones, distancias y estelas de blips coinciden con la trayectoria real reportada por OpenSky en ambas rondas (antes y después de ampliar el bbox).
+
 ## Milestone 5 — Pulido y empaquetado
 
 - Pantalla/mini-formulario de configuración (coordenadas de casa, radio del bounding box, intervalo de polling) persistida en disco (ej. `electron-store`).
