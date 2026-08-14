@@ -124,9 +124,21 @@ Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo d
 - [x] `src/renderer/src/SettingsPanel.tsx` + `.css` (nuevo): formulario con los 4 campos, validación de errores mostrada inline, estilo reutilizado de la paleta "radar CRT" existente (`Radar.css`).
 - [x] `src/renderer/src/App.tsx`: botón de engranaje (esquina opuesta a los controles de zoom del radar) que abre el panel como overlay sobre el radar, sin desmontarlo (conserva zoom/estela); `home` ahora se deriva de `settings` en vez de la llamada IPC retirada.
 
-**Pendiente para cerrar Milestone 5**: empaquetado con `electron-builder` (`.app`/`.dmg` instalable localmente) y documentación final en README (setup, configuración, capturas).
+### Slice 2 — Empaquetado con electron-builder + onboarding de credenciales ✅
 
-**Verificación**: generar el build empaquetado, instalarlo, y correrlo como app standalone (sin `npm run dev`).
+- [x] `package.json`: configuración `build` de `electron-builder` (appId, productName, `files` incluyendo `out/**` y `resources/**`, target `dmg`+`zip` para macOS sin firma de código) y script `npm run dist` (`electron-vite build && electron-builder --mac`).
+- [x] **Bug real encontrado al probar el primer build empaquetado**: la app se cerraba sola al arrancar. `loadConfig()` exigía `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET`/`HOME_*`/`BBOX_*`/`POLL_INTERVAL_SECONDS` vía `.env` (lanzando si faltaban), pero `.env` es git-ignored y nunca se incluye en el paquete — un `.app` instalado standalone no tenía forma de arrancar.
+- [x] `src/main/config.ts`: ya no lanza excepciones — `HOME_*`/`BBOX_*`/`POLL_INTERVAL_SECONDS` pasan a tener defaults hardcodeados (Barajas) si `.env` no existe; sigue siendo solo la semilla de `settings.json` en el primer arranque.
+- [x] `src/main/credentials.ts` (nuevo): las credenciales de OpenSky se desacoplan de `.env` — se persisten en `credentials.json` bajo `userData` (con permisos `0o600`), con fallback a `.env` solo si ese archivo no existe (conveniencia de desarrollo). Sin canal IPC de lectura (`credentials:has` solo devuelve un booleano; no existe `credentials:get`), para que el secreto nunca pueda leerse de vuelta desde el renderer.
+- [x] `src/main/opensky.ts`: `OpenSkyClient` recibe un tipo de configuración propio (`OpenSkyClientConfig`), ya no depende de `AppConfig` completo (que dejó de tener credenciales).
+- [x] `src/main/index.ts`: arranca sin credenciales si `credentials.json`/`.env` no tienen nada (la ventana se abre igual, sin pollear); `startWithCredentials()` arranca/reemplaza el cliente y el polling al guardar credenciales por primera vez o al rotarlas; nuevos canales `credentials:has`/`credentials:save`.
+- [x] `src/renderer/src/CredentialsGate.tsx` (nuevo): pantalla bloqueante de primer arranque (sin botón cancelar) cuando no hay credenciales, con los mismos estilos que `SettingsPanel.css`.
+- [x] `src/renderer/src/SettingsPanel.tsx`: sección adicional para rotar las credenciales más adelante (campos siempre en blanco, "dejar en blanco para no cambiar").
+- [x] `src/renderer/src/App.tsx`: gatea el árbol normal (radar + engranaje) detrás de `hasCredentials`, consultado una vez al montar vía `window.api.hasCredentials()`.
+
+**Verificación**: `npm run dist` genera `.app`/`.dmg` sin errores; instalado limpio (sin `.env`), la app abre y muestra el `CredentialsGate` en vez de cerrarse; al introducir credenciales reales, persisten en `credentials.json` y el radar arranca a mostrar vuelos igual que en desarrollo.
+
+**Pendiente para cerrar Milestone 5**: documentación final en README (setup, configuración, capturas, cómo generar y correr el build empaquetado).
 
 ## Flujo de versionamiento (aplica a todos los milestones)
 

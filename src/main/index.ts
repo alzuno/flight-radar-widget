@@ -2,10 +2,11 @@ import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron'
 import { existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { loadConfig } from './config'
+import { loadCredentials, saveCredentials } from './credentials'
 import { OpenSkyClient, startPolling } from './opensky'
 import { loadOrSeedSettings, saveSettings, validateSettings } from './settings'
 import { radiusKmToBbox } from '../shared/geo'
-import type { AppSettings, FlightState } from '../shared/types'
+import type { AppSettings, OpenSkyCredentials, FlightState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -129,14 +130,9 @@ app.whenReady().then(() => {
 
   const config = loadConfig()
   let currentSettings = loadOrSeedSettings(config)
-  const client = new OpenSkyClient({
-    ...config,
-    bbox: radiusKmToBbox(
-      { latitude: currentSettings.homeLatitude, longitude: currentSettings.homeLongitude },
-      currentSettings.bboxRadiusKm
-    )
-  })
+  let credentials = loadCredentials()
 
+  let client: OpenSkyClient | null = null
   let stopPolling: () => void = () => {}
 
   function onFlights(flights: FlightState[]): void {
@@ -150,23 +146,38 @@ app.whenReady().then(() => {
     console.error('[opensky] error de polling:', err)
   }
 
-  function applySettings(settings: AppSettings): void {
-    stopPolling()
-    client.updateBbox(
-      radiusKmToBbox(
-        { latitude: settings.homeLatitude, longitude: settings.homeLongitude },
-        settings.bboxRadiusKm
-      )
+  function bboxFor(settings: AppSettings): ReturnType<typeof radiusKmToBbox> {
+    return radiusKmToBbox(
+      { latitude: settings.homeLatitude, longitude: settings.homeLongitude },
+      settings.bboxRadiusKm
     )
-    stopPolling = startPolling(client, settings.pollIntervalSeconds, onFlights, onPollError)
+  }
+
+  // Only called once credentials exist. Replaces any previously running client/polling.
+  function startWithCredentials(creds: OpenSkyCredentials): void {
+    stopPolling()
+    client = new OpenSkyClient({
+      openSkyClientId: creds.clientId,
+      openSkyClientSecret: creds.clientSecret,
+      bbox: bboxFor(currentSettings)
+    })
+    stopPolling = startPolling(client, currentSettings.pollIntervalSeconds, onFlights, onPollError)
+  }
+
+  function applySettings(settings: AppSettings): void {
     currentSettings = settings
     saveSettings(settings)
+    if (client) {
+      stopPolling()
+      client.updateBbox(bboxFor(settings))
+      stopPolling = startPolling(client, settings.pollIntervalSeconds, onFlights, onPollError)
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('settings:updated', settings)
     }
   }
 
-  stopPolling = startPolling(client, currentSettings.pollIntervalSeconds, onFlights, onPollError)
+  if (credentials) startWithCredentials(credentials)
 
   // Only settings (never the OpenSky credentials) are shared with the renderer.
   ipcMain.handle('settings:get', () => currentSettings)
@@ -175,6 +186,18 @@ app.whenReady().then(() => {
     const result = validateSettings(input)
     if (!result.ok) return result
     applySettings(result.settings)
+    return { ok: true }
+  })
+
+  // credentials:get intentionally does not exist — the renderer must never be
+  // able to read the client secret back, not even to prefill an edit form.
+  ipcMain.handle('credentials:has', () => credentials !== null)
+
+  ipcMain.handle('credentials:save', (_event, input: OpenSkyCredentials) => {
+    const result = saveCredentials(input)
+    if (!result.ok) return result
+    credentials = input
+    startWithCredentials(credentials)
     return { ok: true }
   })
 

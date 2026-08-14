@@ -49,6 +49,14 @@
   border-color: #39ff6a;
 }
 
+.settings-section-title {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #2fa860;
+  border-top: 1px solid rgba(47, 168, 96, 0.4);
+  padding-top: 8px;
+}
+
 .settings-error {
   font-size: 11px;
   color: #ff6a6a;

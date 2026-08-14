@@ -1,14 +1,32 @@
 {
   "name": "flight-radar-widget",
   "version": "0.4.0",
-  "description": "",
+  "description": "Widget de escritorio para macOS que muestra en vivo los aviones cercanos usando la API de OpenSky Network.",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build"
+    "build": "electron-vite build",
+    "dist": "electron-vite build && electron-builder --mac"
   },
   "keywords": [],
   "type": "commonjs",
+  "build": {
+    "appId": "com.alzuno.flightradarwidget",
+    "productName": "Flight Radar Widget",
+    "files": [
+      "out/**/*",
+      "resources/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "identity": null,
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
+  },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",

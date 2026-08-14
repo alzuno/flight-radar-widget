@@ -16,6 +16,8 @@ body,
 
 .app-widget-frame {
   position: relative;
+  width: 320px;
+  height: 320px;
 }
 
 .app-settings-toggle {

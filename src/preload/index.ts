@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppSettings, FlightState, SaveSettingsResult } from '../shared/types'
+import type {
+  AppSettings,
+  FlightState,
+  OpenSkyCredentials,
+  SaveSettingsResult
+} from '../shared/types'
 
 contextBridge.exposeInMainWorld('api', {
   onFlightsUpdate(callback: (flights: FlightState[]) => void): () => void {
@@ -22,5 +27,11 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (): void => callback()
     ipcRenderer.on('settings:open-request', listener)
     return () => ipcRenderer.removeListener('settings:open-request', listener)
+  },
+  hasCredentials(): Promise<boolean> {
+    return ipcRenderer.invoke('credentials:has')
+  },
+  saveCredentials(credentials: OpenSkyCredentials): Promise<SaveSettingsResult> {
+    return ipcRenderer.invoke('credentials:save', credentials)
   }
 })

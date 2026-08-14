@@ -2,6 +2,7 @@ import type React from 'react'
 import { useEffect, useState } from 'react'
 import type { AppSettings, FlightState } from '../../shared/types'
 import './App.css'
+import CredentialsGate from './CredentialsGate'
 import Radar from './Radar'
 import SettingsPanel from './SettingsPanel'
 
@@ -9,9 +10,14 @@ function App(): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [flights, setFlights] = useState<FlightState[]>([])
   const [panelOpen, setPanelOpen] = useState(false)
+  const [hasCredentials, setHasCredentials] = useState<boolean | null>(null)
 
   useEffect(() => {
     window.api.getSettings().then(setSettings)
+  }, [])
+
+  useEffect(() => {
+    window.api.hasCredentials().then(setHasCredentials)
   }, [])
 
   useEffect(() => {
@@ -46,23 +52,33 @@ function App(): React.JSX.Element {
       }}
     >
       <div className="app-widget-frame">
-        {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
-
-        <button
-          type="button"
-          className="app-settings-toggle"
-          onClick={() => setPanelOpen(true)}
-          aria-label="Abrir configuración"
-        >
-          ⚙
-        </button>
-
-        {panelOpen && settings && (
-          <SettingsPanel
-            settings={settings}
-            onSave={(next) => window.api.saveSettings(next)}
-            onClose={() => setPanelOpen(false)}
+        {hasCredentials === false ? (
+          <CredentialsGate
+            onSave={(credentials) => window.api.saveCredentials(credentials)}
+            onSaved={() => setHasCredentials(true)}
           />
+        ) : (
+          <>
+            {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
+
+            <button
+              type="button"
+              className="app-settings-toggle"
+              onClick={() => setPanelOpen(true)}
+              aria-label="Abrir configuración"
+            >
+              ⚙
+            </button>
+
+            {panelOpen && settings && (
+              <SettingsPanel
+                settings={settings}
+                onSave={(next) => window.api.saveSettings(next)}
+                onSaveCredentials={(credentials) => window.api.saveCredentials(credentials)}
+                onClose={() => setPanelOpen(false)}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

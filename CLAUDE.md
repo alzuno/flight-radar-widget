@@ -9,7 +9,8 @@ Flight Radar Widget: a macOS desktop widget (Electron + Vite + React, via `elect
 ## Commands
 
 - `npm run dev` — start the app in development (electron-vite dev server + Electron window).
-- `npm run build` — production build via `electron-vite build`.
+- `npm run build` — production build via `electron-vite build` (no packaging).
+- `npm run dist` — production build + `electron-builder --mac`, producing an installable `.app`/`.dmg` in `dist/` (git-ignored).
 
 There is no test suite or linter configured yet.
 
@@ -34,7 +35,8 @@ Config: `electron.vite.config.ts` defines the three separate build targets (main
 
 ## Credentials and security
 
-- OpenSky OAuth2 credentials live only in a local `.env` (git-ignored), read only by the main process — never expose them to the renderer, not even indirectly via devtools.
-- `api/opensky_credentials.json` and `.env` are git-ignored; `.env.example` documents the required keys (OpenSky client id/secret, home lat/lon, bounding box, poll interval) with empty/placeholder values.
-- This repo is public — any change touching credential handling must keep the secret exclusively in the main process.
-- Since Milestone 5, user-editable runtime settings (home lat/lon, bbox radius, poll interval) persist in `settings.json` under `app.getPath('userData')` (`src/main/settings.ts`), separate from `.env`, which now only seeds that file on first run. `settings.json` never contains OpenSky credentials — only `.env` does.
+- OpenSky OAuth2 credentials are read only by the main process — never expose them to the renderer, not even indirectly via devtools. As of Milestone 5, they're **not required to live in `.env` at all**: `src/main/credentials.ts` reads `credentials.json` under `app.getPath('userData')` first, falling back to `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET` in `.env` only if that file doesn't exist yet (dev convenience). A packaged `.app` (which never ships with a `.env`) shows a blocking onboarding screen (`CredentialsGate.tsx`) on first launch instead, and persists whatever's entered to `credentials.json`.
+- There is deliberately **no IPC channel that reads credentials back** (`credentials:has` only returns a boolean; `credentials:save` is write-only) — the renderer can prompt for/update them but can never read the stored secret, in devtools or otherwise.
+- `api/opensky_credentials.json` and `.env` are git-ignored; `.env.example` documents the optional dev-fallback keys (OpenSky client id/secret, home lat/lon, bounding box, poll interval) with empty/placeholder values.
+- This repo is public — any change touching credential handling must keep the secret exclusively in the main process, and never bundle real credentials into `dist/` build output (also git-ignored, but the packaging config in `package.json`'s `build.files` should never include `.env` or `credentials.json`).
+- Since Milestone 5, user-editable runtime settings (home lat/lon, bbox radius, poll interval) persist in `settings.json` under `app.getPath('userData')` (`src/main/settings.ts`), separate from `.env` and from `credentials.json`. `settings.json` never contains OpenSky credentials.

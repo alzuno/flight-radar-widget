@@ -23,3 +23,8 @@ export interface AppSettings {
 }
 
 export type SaveSettingsResult = { ok: true } | { ok: false; error: string }
+
+export interface OpenSkyCredentials {
+  clientId: string
+  clientSecret: string
+}

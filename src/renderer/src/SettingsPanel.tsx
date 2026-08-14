@@ -1,11 +1,12 @@
 import type React from 'react'
 import { useState } from 'react'
-import type { AppSettings } from '../../shared/types'
+import type { AppSettings, OpenSkyCredentials, SaveSettingsResult } from '../../shared/types'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {
   settings: AppSettings
-  onSave: (settings: AppSettings) => Promise<{ ok: true } | { ok: false; error: string }>
+  onSave: (settings: AppSettings) => Promise<SaveSettingsResult>
+  onSaveCredentials: (credentials: OpenSkyCredentials) => Promise<SaveSettingsResult>
   onClose: () => void
 }
 
@@ -14,6 +15,8 @@ interface FormState {
   homeLongitude: string
   bboxRadiusKm: string
   pollIntervalSeconds: string
+  clientId: string
+  clientSecret: string
 }
 
 function toFormState(settings: AppSettings): FormState {
@@ -21,11 +24,18 @@ function toFormState(settings: AppSettings): FormState {
     homeLatitude: String(settings.homeLatitude),
     homeLongitude: String(settings.homeLongitude),
     bboxRadiusKm: String(settings.bboxRadiusKm),
-    pollIntervalSeconds: String(settings.pollIntervalSeconds)
+    pollIntervalSeconds: String(settings.pollIntervalSeconds),
+    clientId: '',
+    clientSecret: ''
   }
 }
 
-function SettingsPanel({ settings, onSave, onClose }: SettingsPanelProps): React.JSX.Element {
+function SettingsPanel({
+  settings,
+  onSave,
+  onSaveCredentials,
+  onClose
+}: SettingsPanelProps): React.JSX.Element {
   const [form, setForm] = useState<FormState>(toFormState(settings))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -46,11 +56,25 @@ function SettingsPanel({ settings, onSave, onClose }: SettingsPanelProps): React
       pollIntervalSeconds: Number(form.pollIntervalSeconds)
     })
 
-    setSaving(false)
     if (!result.ok) {
+      setSaving(false)
       setError(result.error)
       return
     }
+
+    if (form.clientId.trim() || form.clientSecret.trim()) {
+      const credentialsResult = await onSaveCredentials({
+        clientId: form.clientId,
+        clientSecret: form.clientSecret
+      })
+      if (!credentialsResult.ok) {
+        setSaving(false)
+        setError(credentialsResult.error)
+        return
+      }
+    }
+
+    setSaving(false)
     onClose()
   }
 
@@ -96,6 +120,22 @@ function SettingsPanel({ settings, onSave, onClose }: SettingsPanelProps): React
             step="any"
             value={form.pollIntervalSeconds}
             onChange={handleChange('pollIntervalSeconds')}
+          />
+        </label>
+
+        <div className="settings-section-title">Credenciales OpenSky (dejar en blanco para no cambiar)</div>
+
+        <label className="settings-field">
+          Client ID
+          <input type="password" value={form.clientId} onChange={handleChange('clientId')} />
+        </label>
+
+        <label className="settings-field">
+          Client Secret
+          <input
+            type="password"
+            value={form.clientSecret}
+            onChange={handleChange('clientSecret')}
           />
         </label>
 

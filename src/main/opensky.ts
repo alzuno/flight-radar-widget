@@ -1,4 +1,3 @@
-import type { AppConfig } from './config'
 import type { Bbox } from '../shared/geo'
 import type { FlightState } from '../shared/types'
 
@@ -14,10 +13,16 @@ interface CachedToken {
   expiresAt: number
 }
 
+export interface OpenSkyClientConfig {
+  openSkyClientId: string
+  openSkyClientSecret: string
+  bbox: Bbox
+}
+
 export class OpenSkyClient {
   private cachedToken: CachedToken | null = null
 
-  constructor(private readonly config: AppConfig) {}
+  constructor(private readonly config: OpenSkyClientConfig) {}
 
   /** Updates the query bbox in place, preserving the cached OAuth2 token. */
   updateBbox(bbox: Bbox): void {
