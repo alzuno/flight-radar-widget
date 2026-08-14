@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.5.0] — 2026-08-14
+
+### Milestone 4 — cierre confirmado
+
+- Auto-arranque (`app.setLoginItemSettings({ openAtLogin: true })`) verificado en vivo tras reiniciar sesión de macOS: el widget arranca solo sin interferir con el uso normal del Mac.
+
+### Milestone 5 — Slices 1 y 2
+
+- `src/renderer/src/SettingsPanel.tsx`: panel de configuración persistida (home lat/lon, radio del bbox, intervalo de polling), guardado en `settings.json` bajo `userData`.
+- Empaquetado con `electron-builder` (`npm run dist` → `.app`/`.dmg` para macOS) y onboarding de credenciales (`src/renderer/src/CredentialsGate.tsx`): las credenciales de OpenSky se piden en el primer arranque y se persisten en `credentials.json` bajo `userData` (sin canal IPC de lectura), en vez de depender de un `.env` que nunca se empaqueta.
+- **Fix**: el panel de configuración se desbordaba fuera de su contenedor y quedaba inutilizable.
+
+### Fixes tras probar el `.app` empaquetado con auto-login real
+
+- La posición de la ventana no se guardaba entre reinicios (siempre abría centrada). `src/main/windowState.ts` (nuevo) persiste `{x, y}` y los restaura al crear la ventana.
+- El radar dibujaba aviones fuera del radio de zoom seleccionado "aplastados" contra el anillo exterior en vez de ocultarlos. `Radar.tsx` ahora descarta esos blips con `projectInRange()`, igual que ya se hacía con los aeropuertos.
+
 ## [0.4.0] — 2026-08-12
 
 ### Mejoras post-Milestone 3 — radar más intuitivo

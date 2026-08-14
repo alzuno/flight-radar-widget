@@ -53,12 +53,6 @@ function projectAt(
   }
 }
 
-/** Projects a point, clamping it to the outer ring if it's beyond maxRangeKm. */
-function projectClamped(home: HomeLocation, target: HomeLocation, maxRangeKm: number): Point {
-  const distance = Math.min(distanceKm(home, target), maxRangeKm)
-  return projectAt(home, target, distance, maxRangeKm)
-}
-
 /** Projects a point, or null if it falls outside the radar's range. */
 function projectInRange(home: HomeLocation, target: HomeLocation, maxRangeKm: number): Point | null {
   const distance = distanceKm(home, target)
@@ -69,7 +63,8 @@ function toBlip(home: HomeLocation, flight: FlightState, maxRangeKm: number): Bl
   if (flight.latitude === null || flight.longitude === null) return null
 
   const target = { latitude: flight.latitude, longitude: flight.longitude }
-  return { flight, ...projectClamped(home, target, maxRangeKm) }
+  const point = projectInRange(home, target, maxRangeKm)
+  return point ? { flight, ...point } : null
 }
 
 function Radar({ home, flights }: RadarProps): React.JSX.Element {

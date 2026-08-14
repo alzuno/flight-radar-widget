@@ -19,9 +19,9 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 - **Milestone 1: cerrado.** Repo scaffolded, pusheado y verificado (ver detalle marcado abajo). Tag `v0.1.0` y entrada en `CHANGELOG.md` creados.
 - **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
 - **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente. Mejoras adicionales aplicadas después del cierre (ver sección "Mejoras post-M3" más abajo): estela histórica, callsign visible, aeropuertos cercanos, radar recentrado en Barajas con radio de 10 km, y fix de un bug real de ventana destruida en el proceso principal.
-- **Milestone 4: en curso.** Comportamiento de widget de escritorio implementado y verificado en vivo salvo un punto: falta reiniciar sesión de macOS para confirmar el auto-arranque (solo lo puede probar el usuario).
-- **Milestone 5: en curso.** Slice 1 (pantalla de configuración persistida) implementada; falta empaquetado con `electron-builder` y documentación final de README.
-- **Siguiente paso**: verificar el auto-login pendiente de Milestone 4 (usuario) y avanzar con el empaquetado de Milestone 5.
+- **Milestone 4: cerrado.** Comportamiento de widget de escritorio implementado y verificado en vivo, incluyendo el auto-arranque tras reinicio de sesión de macOS (confirmado por el usuario).
+- **Milestone 5: en curso.** Slices 1 (configuración persistida) y 2 (empaquetado + onboarding de credenciales) implementados y verificados; falta documentación final de README. Se corrigieron además dos bugs post-empaquetado: posición de la ventana no persistida entre reinicios, y aviones fuera del radio del zoom seleccionado dibujándose "aplastados" contra el anillo exterior en vez de ocultarse.
+- **Siguiente paso**: documentación final de README para cerrar Milestone 5.
 
 ## Seguridad de credenciales (aplica a todos los milestones)
 
@@ -84,7 +84,7 @@ Tras cerrar M3, el usuario pidió hacer el radar más intuitivo:
 
 **Verificación**: ✅ confirmado en vivo por el usuario tras el fix — 6+ ciclos de polling consecutivos sin errores en consola, radar centrado en Barajas con radio de 10 km, estela y callsigns visibles de forma estable.
 
-## Milestone 4 — Comportamiento de widget de escritorio (en curso)
+## Milestone 4 — Comportamiento de widget de escritorio ✅ CERRADO
 
 - [x] `BrowserWindow`: `frame: false`, `transparent: true`, `resizable: false`, `hasShadow: false`.
 - [x] `win.setAlwaysOnTop(true, 'desktop')` para fijarlo al nivel del escritorio (detrás de apps, encima del wallpaper).
@@ -95,7 +95,7 @@ Tras cerrar M3, el usuario pidió hacer el radar más intuitivo:
 
 **Verificado en vivo por el usuario**: ventana sin bordes/transparente mostrando el wallpaper real de macOS a través suyo (confirma `transparent` + nivel `'desktop'`), menú del tray funcionando (mostrar/ocultar, iniciar con macOS, salir), widget arrastrable desde el margen fuera del círculo del radar, y tooltip de blips funcionando tras el fix de drag regions.
 
-**Pendiente para cerrar milestone**: reiniciar sesión de macOS y confirmar que el widget arranca solo (auto-login) y no interfiere con el uso normal del Mac — esto solo lo puede probar el usuario.
+**Cierre confirmado**: el usuario reinició sesión de macOS y confirmó que el widget arranca solo (auto-login) sin interferir con el uso normal del Mac.
 
 ### Mejoras adicionales (durante M4) — radar más preciso y navegable
 
@@ -137,6 +137,10 @@ Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo d
 - [x] `src/renderer/src/App.tsx`: gatea el árbol normal (radar + engranaje) detrás de `hasCredentials`, consultado una vez al montar vía `window.api.hasCredentials()`.
 
 **Verificación**: `npm run dist` genera `.app`/`.dmg` sin errores; instalado limpio (sin `.env`), la app abre y muestra el `CredentialsGate` en vez de cerrarse; al introducir credenciales reales, persisten en `credentials.json` y el radar arranca a mostrar vuelos igual que en desarrollo.
+
+**Bugs encontrados y corregidos tras probar el `.app` empaquetado con auto-login real**:
+- La ventana siempre se abría centrada en pantalla en cada arranque, ignorando dónde el usuario la había dejado. `src/main/windowState.ts` (nuevo) persiste `{x, y}` en `windowState.json` bajo `userData`; `src/main/index.ts` la lee al crear la ventana y la guarda (debounced 500ms) en cada evento `move`.
+- `src/renderer/src/Radar.tsx`: `toBlip()` usaba `projectClamped()`, que proyectaba cualquier avión fuera del radio de zoom seleccionado igual, "aplastándolo" contra el anillo exterior — dejaba una acumulación visual de puntos en el borde que no correspondía a tráfico real dentro de rango. Se cambió a `projectInRange()` (la misma función ya usada para los aeropuertos), descartando el blip si el avión está fuera del radio activo.
 
 **Pendiente para cerrar Milestone 5**: documentación final en README (setup, configuración, capturas, cómo generar y correr el build empaquetado).
 

@@ -5,6 +5,7 @@ import { loadConfig } from './config'
 import { loadCredentials, saveCredentials } from './credentials'
 import { OpenSkyClient, startPolling } from './opensky'
 import { loadOrSeedSettings, saveSettings, validateSettings } from './settings'
+import { loadWindowPosition, saveWindowPosition } from './windowState'
 import { radiusKmToBbox } from '../shared/geo'
 import type { AppSettings, OpenSkyCredentials, FlightState } from '../shared/types'
 
@@ -22,9 +23,12 @@ function enableAutoLaunchOnFirstRun(): void {
 }
 
 function createWindow(): BrowserWindow {
+  const position = loadWindowPosition()
+
   const win = new BrowserWindow({
     width: 400,
     height: 400,
+    ...(position ?? {}),
     frame: false,
     transparent: true,
     resizable: false,
@@ -32,6 +36,17 @@ function createWindow(): BrowserWindow {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js')
     }
+  })
+
+  // Debounced so dragging the widget doesn't hammer disk I/O on every
+  // intermediate 'move' event — only the settled position is persisted.
+  let moveSaveTimeout: NodeJS.Timeout | null = null
+  win.on('move', () => {
+    if (moveSaveTimeout) clearTimeout(moveSaveTimeout)
+    moveSaveTimeout = setTimeout(() => {
+      const [x, y] = win.getPosition()
+      saveWindowPosition({ x, y })
+    }, 500)
   })
 
   // Pin the widget to the desktop level (behind normal windows, above the
