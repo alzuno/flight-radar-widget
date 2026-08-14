@@ -2,6 +2,15 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.7.0] — 2026-08-14
+
+### Milestone 6 — Ruta (origen-destino) por avión
+
+- `src/main/routeLookup.ts` (nuevo): lookup de ruta por callsign vía **adsbdb.com** (API gratuita, sin auth), con cache en memoria + disco (`routes-cache.json` bajo `userData`), TTL de 12h para rutas resueltas y 30min para negativas (vuelos privados/militares sin ruta conocida), concurrencia limitada y timeout de 5s vía `AbortController`.
+- `src/main/index.ts`: el envío de `flights:update` nunca espera a la red — se enriquece con lo que ya está en cache y las rutas nuevas se empujan en un reenvío debounced apenas se resuelven.
+- `src/renderer/src/Radar.tsx`: cada blip muestra la ruta (ej. `MAD-BCN`) bajo el callsign, y el tooltip al hacer hover agrega una línea `Ruta: —`.
+- `src/shared/types.ts`: `FlightState.route: string | null`.
+
 ## [0.6.0] — 2026-08-14
 
 ### Milestone 5 — cierre

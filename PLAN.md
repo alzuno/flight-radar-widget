@@ -21,6 +21,7 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 - **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente. Mejoras adicionales aplicadas después del cierre (ver sección "Mejoras post-M3" más abajo): estela histórica, callsign visible, aeropuertos cercanos, radar recentrado en Barajas con radio de 10 km, y fix de un bug real de ventana destruida en el proceso principal.
 - **Milestone 4: cerrado.** Comportamiento de widget de escritorio implementado y verificado en vivo, incluyendo el auto-arranque tras reinicio de sesión de macOS (confirmado por el usuario).
 - **Milestone 5: cerrado.** Slices 1 (configuración persistida) y 2 (empaquetado + onboarding de credenciales) implementados y verificados. Se corrigieron además dos bugs post-empaquetado: posición de la ventana no persistida entre reinicios, y aviones fuera del radio del zoom seleccionado dibujándose "aplastados" contra el anillo exterior en vez de ocultarse. README reescrito con documentación completa (setup, credenciales, empaquetado, estructura) y captura real del radar. Tag `v0.6.0` y entrada en `CHANGELOG.md` creados.
+- **Milestone 6: cerrado.** Ruta (origen-destino) por avión vía adsbdb.com — ver detalle abajo. Tag `v0.7.0` y entrada en `CHANGELOG.md` creados.
 - **Siguiente paso**: sin milestone en curso — a definir con el usuario (candidatos mencionados en "Notas de alcance": dead-reckoning de posiciones stale, soporte multi-plataforma, u otra fuente de datos).
 
 ## Seguridad de credenciales (aplica a todos los milestones)
@@ -146,6 +147,18 @@ Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo d
 
 - [x] `README.md` reescrito: qué hace el widget, uso en desarrollo (con la nota de sandbox `ELECTRON_RUN_AS_NODE`), cómo obtener credenciales de OpenSky, `npm run dist` y comportamiento del primer arranque de un `.app` instalado limpio, estructura de carpetas actualizada y sección de seguridad ampliada.
 - [x] Captura real del radar (`docs/radar.png`) — tomada con `screencapture` contra la build de desarrollo corriendo con datos reales de OpenSky, recortada a la región del widget para no exponer el resto del escritorio.
+
+## Milestone 6 — Ruta (origen-destino) vía adsbdb.com ✅ CERRADO
+
+OpenSky (`/states/all`) no incluye origen/destino de vuelo. El usuario probó manualmente **adsbdb.com** (API gratuita, sin auth, consulta por callsign) y confirmó que la ruta devuelta era correcta, así que se integró para mostrarla junto al callsign.
+
+- [x] `src/shared/types.ts`: `FlightState` gana el campo `route: string | null` (string ya formateado, ej. `"MAD-BCN"`).
+- [x] `src/main/opensky.ts`: `parseState()` inicializa `route: null` — OpenSky nunca lo provee, el enriquecimiento pasa después.
+- [x] `src/main/routeLookup.ts` (nuevo): cliente para `https://api.adsbdb.com/v0/callsign/<CALLSIGN>` con cache en memoria + persistida en disco (`routes-cache.json` bajo `userData`, mismo patrón de `credentials.ts`). TTL positivo de 12h (rutas no cambian en el día) y TTL negativo de 30min (para reintentar vuelos privados/militares sin insistir en cada tick). Lookups en background con concurrencia limitada (4) y timeout de 5s vía `AbortController` (primer uso de `AbortController` en el repo).
+- [x] `src/main/index.ts`: `onFlights` envía `flights:update` de inmediato enriquecido solo con lo que ya está en cache (lookup síncrono, sin red, sin latencia añadida al polling); dispara `refreshRoutesInBackground()` sin esperarlo, y reenvía (debounced 500ms) el último array conocido cuando se resuelven rutas nuevas.
+- [x] `src/renderer/src/Radar.tsx` + `Radar.css`: segunda línea de texto bajo el callsign de cada blip mostrando la ruta (solo si existe, sin placeholder); línea `Ruta: —` añadida al tooltip existente, siguiendo la convención de guion largo para datos faltantes.
+
+**Verificación**: `tsc --noEmit` limpio en ambos tsconfig; `npm run dev` con datos reales confirmó rutas visibles en el radar (ej. `WZZ52`/`OTP-BHX`, `THY9DC`/`IST-AYT`) y persistencia correcta de `routes-cache.json`, incluyendo negativos para vuelos sin ruta conocida (jets privados).
 
 ## Flujo de versionamiento (aplica a todos los milestones)
 

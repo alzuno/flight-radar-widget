@@ -8,6 +8,7 @@ export interface FlightState {
   velocity: number | null
   trueTrack: number | null
   onGround: boolean
+  route: string | null
 }
 
 export interface HomeLocation {

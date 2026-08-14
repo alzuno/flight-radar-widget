@@ -106,7 +106,8 @@ function parseState(raw: unknown[]): FlightState {
     baroAltitude: raw[7] as number | null,
     velocity: raw[9] as number | null,
     trueTrack: raw[10] as number | null,
-    onGround: raw[8] as boolean
+    onGround: raw[8] as boolean,
+    route: null
   }
 }
 

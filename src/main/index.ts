@@ -4,6 +4,7 @@ import { join } from 'path'
 import { loadConfig } from './config'
 import { loadCredentials, saveCredentials } from './credentials'
 import { OpenSkyClient, startPolling } from './opensky'
+import { getCachedRoute, loadRouteCache, refreshRoutesInBackground } from './routeLookup'
 import { loadOrSeedSettings, saveSettings, validateSettings } from './settings'
 import { loadWindowPosition, saveWindowPosition } from './windowState'
 import { radiusKmToBbox } from '../shared/geo'
@@ -143,6 +144,8 @@ app.whenReady().then(() => {
 
   tray = createTray()
 
+  loadRouteCache()
+
   const config = loadConfig()
   let currentSettings = loadOrSeedSettings(config)
   let credentials = loadCredentials()
@@ -150,11 +153,33 @@ app.whenReady().then(() => {
   let client: OpenSkyClient | null = null
   let stopPolling: () => void = () => {}
 
+  let lastFlights: FlightState[] = []
+  let routeResendTimeout: NodeJS.Timeout | null = null
+
+  function enrichWithRoutes(flights: FlightState[]): FlightState[] {
+    return flights.map((flight) => ({
+      ...flight,
+      route: flight.callsign ? (getCachedRoute(flight.callsign) ?? null) : null
+    }))
+  }
+
+  function sendFlights(flights: FlightState[]): void {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('flights:update', enrichWithRoutes(flights))
+    }
+  }
+
   function onFlights(flights: FlightState[]): void {
     console.log(`[opensky] ${flights.length} aeronaves recibidas`)
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('flights:update', flights)
-    }
+    lastFlights = flights
+    sendFlights(flights)
+
+    const callsigns = flights.map((f) => f.callsign).filter((c): c is string => c !== null)
+    refreshRoutesInBackground(callsigns, () => {
+      // Debounced so a burst of resolved callsigns triggers one resend, not one per callsign.
+      if (routeResendTimeout) clearTimeout(routeResendTimeout)
+      routeResendTimeout = setTimeout(() => sendFlights(lastFlights), 500)
+    })
   }
 
   function onPollError(err: unknown): void {

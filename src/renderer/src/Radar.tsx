@@ -223,6 +223,11 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
             <text className="radar-label" x={blip.x + 8} y={blip.y - 8}>
               {blip.flight.callsign?.trim() || blip.flight.icao24}
             </text>
+            {blip.flight.route && (
+              <text className="radar-route-label" x={blip.x + 8} y={blip.y + 2}>
+                {blip.flight.route}
+              </text>
+            )}
           </g>
         ))}
       </svg>
@@ -251,6 +256,7 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
       {hovered && (
         <div className="radar-tooltip" style={{ left: hovered.x, top: hovered.y }}>
           <div>{hovered.flight.callsign ?? '(sin callsign)'}</div>
+          <div>Ruta: {hovered.flight.route ?? '—'}</div>
           <div>
             Altitud:{' '}
             {hovered.flight.baroAltitude !== null
