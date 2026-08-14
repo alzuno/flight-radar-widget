@@ -52,35 +52,35 @@ function App(): React.JSX.Element {
       }}
     >
       <div className="app-widget-frame">
-        {hasCredentials === false ? (
-          <CredentialsGate
-            onSave={(credentials) => window.api.saveCredentials(credentials)}
-            onSaved={() => setHasCredentials(true)}
-          />
-        ) : (
-          <>
-            {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
+        {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
 
-            <button
-              type="button"
-              className="app-settings-toggle"
-              onClick={() => setPanelOpen(true)}
-              aria-label="Abrir configuración"
-            >
-              ⚙
-            </button>
-
-            {panelOpen && settings && (
-              <SettingsPanel
-                settings={settings}
-                onSave={(next) => window.api.saveSettings(next)}
-                onSaveCredentials={(credentials) => window.api.saveCredentials(credentials)}
-                onClose={() => setPanelOpen(false)}
-              />
-            )}
-          </>
+        {hasCredentials !== false && (
+          <button
+            type="button"
+            className="app-settings-toggle"
+            onClick={() => setPanelOpen(true)}
+            aria-label="Abrir configuración"
+          >
+            ⚙
+          </button>
         )}
       </div>
+
+      {hasCredentials === false && (
+        <CredentialsGate
+          onSave={(credentials) => window.api.saveCredentials(credentials)}
+          onSaved={() => setHasCredentials(true)}
+        />
+      )}
+
+      {panelOpen && settings && (
+        <SettingsPanel
+          settings={settings}
+          onSave={(next) => window.api.saveSettings(next)}
+          onSaveCredentials={(credentials) => window.api.saveCredentials(credentials)}
+          onClose={() => setPanelOpen(false)}
+        />
+      )}
     </div>
   )
 }
