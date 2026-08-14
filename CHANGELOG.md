@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.6.0] — 2026-08-14
+
+### Milestone 5 — cierre
+
+- `README.md` reescrito de punta a punta: qué hace el widget, uso en desarrollo (incluida la nota de sandbox `ELECTRON_RUN_AS_NODE`), cómo obtener credenciales de OpenSky, empaquetado con `electron-builder` (`npm run dist`) y qué pasa en el primer arranque de un `.app` instalado limpio, estructura del proyecto actualizada a Milestone 5 (settings, credentials, windowState) y sección de seguridad ampliada.
+- Captura de pantalla real del radar (`docs/radar.png`) tomada en vivo contra datos reales de OpenSky.
+
 ## [0.5.0] — 2026-08-14
 
 ### Milestone 4 — cierre confirmado

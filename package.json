@@ -1,6 +1,6 @@
 {
   "name": "flight-radar-widget",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Widget de escritorio para macOS que muestra en vivo los aviones cercanos usando la API de OpenSky Network.",
   "main": "./out/main/index.js",
   "scripts": {

@@ -20,8 +20,8 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 - **Milestone 2: cerrado.** Capa de datos OpenSky (auth OAuth2 + polling + IPC) implementada y verificada.
 - **Milestone 3: cerrado.** UI del radar (renderer/React) implementada y verificada visualmente. Mejoras adicionales aplicadas después del cierre (ver sección "Mejoras post-M3" más abajo): estela histórica, callsign visible, aeropuertos cercanos, radar recentrado en Barajas con radio de 10 km, y fix de un bug real de ventana destruida en el proceso principal.
 - **Milestone 4: cerrado.** Comportamiento de widget de escritorio implementado y verificado en vivo, incluyendo el auto-arranque tras reinicio de sesión de macOS (confirmado por el usuario).
-- **Milestone 5: en curso.** Slices 1 (configuración persistida) y 2 (empaquetado + onboarding de credenciales) implementados y verificados; falta documentación final de README. Se corrigieron además dos bugs post-empaquetado: posición de la ventana no persistida entre reinicios, y aviones fuera del radio del zoom seleccionado dibujándose "aplastados" contra el anillo exterior en vez de ocultarse.
-- **Siguiente paso**: documentación final de README para cerrar Milestone 5.
+- **Milestone 5: cerrado.** Slices 1 (configuración persistida) y 2 (empaquetado + onboarding de credenciales) implementados y verificados. Se corrigieron además dos bugs post-empaquetado: posición de la ventana no persistida entre reinicios, y aviones fuera del radio del zoom seleccionado dibujándose "aplastados" contra el anillo exterior en vez de ocultarse. README reescrito con documentación completa (setup, credenciales, empaquetado, estructura) y captura real del radar. Tag `v0.6.0` y entrada en `CHANGELOG.md` creados.
+- **Siguiente paso**: sin milestone en curso — a definir con el usuario (candidatos mencionados en "Notas de alcance": dead-reckoning de posiciones stale, soporte multi-plataforma, u otra fuente de datos).
 
 ## Seguridad de credenciales (aplica a todos los milestones)
 
@@ -142,7 +142,10 @@ Mientras se verificaba M4, el usuario comparó el radar contra el mapa en vivo d
 - La ventana siempre se abría centrada en pantalla en cada arranque, ignorando dónde el usuario la había dejado. `src/main/windowState.ts` (nuevo) persiste `{x, y}` en `windowState.json` bajo `userData`; `src/main/index.ts` la lee al crear la ventana y la guarda (debounced 500ms) en cada evento `move`.
 - `src/renderer/src/Radar.tsx`: `toBlip()` usaba `projectClamped()`, que proyectaba cualquier avión fuera del radio de zoom seleccionado igual, "aplastándolo" contra el anillo exterior — dejaba una acumulación visual de puntos en el borde que no correspondía a tráfico real dentro de rango. Se cambió a `projectInRange()` (la misma función ya usada para los aeropuertos), descartando el blip si el avión está fuera del radio activo.
 
-**Pendiente para cerrar Milestone 5**: documentación final en README (setup, configuración, capturas, cómo generar y correr el build empaquetado).
+### Cierre de Milestone 5 — documentación final
+
+- [x] `README.md` reescrito: qué hace el widget, uso en desarrollo (con la nota de sandbox `ELECTRON_RUN_AS_NODE`), cómo obtener credenciales de OpenSky, `npm run dist` y comportamiento del primer arranque de un `.app` instalado limpio, estructura de carpetas actualizada y sección de seguridad ampliada.
+- [x] Captura real del radar (`docs/radar.png`) — tomada con `screencapture` contra la build de desarrollo corriendo con datos reales de OpenSky, recortada a la región del widget para no exponer el resto del escritorio.
 
 ## Flujo de versionamiento (aplica a todos los milestones)
 
