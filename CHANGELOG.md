@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/), versionado con [SemVer](https://semver.org/).
 
+## [0.8.0] — 2026-08-17
+
+### Mejoras post-Milestone 6 — ciudades en rutas y trazas persistentes
+
+- `src/shared/types.ts`: nuevo tipo `RouteInfo` (`origin`, `destination`, `originCity?`, `destinationCity?`); `FlightState.route` pasa de `string | null` a `RouteInfo | null`.
+- `src/main/routeLookup.ts`: lee también el campo `municipality` de adsbdb para origen y destino. Formato de `routes-cache.json` versionado para descartar limpiamente el cache antiguo.
+- `src/renderer/src/Radar.tsx`: el tooltip agrega una línea `Ciudad origen → Ciudad destino` cuando adsbdb la provee. La retención de trazas verdes pasa de un tope fijo de 3 ciclos de sondeo a un cálculo dinámico (~5 minutos, con piso de 3 ciclos) según el intervalo de sondeo configurado.
+- `src/renderer/src/App.tsx`: pasa `pollIntervalSeconds` al componente `Radar`.
+- Se investigó (con pruebas reales contra 8 vuelos) usar OpenSky `/flights/aircraft` o `hexdb.io` como fuente alternativa para callsigns que adsbdb no resuelve; se descartó OpenSky (nunca conoce el destino mientras el avión sigue en vuelo) y se decidió no sumar hexdb.io para mantener el alcance simple.
+
 ## [0.7.0] — 2026-08-14
 
 ### Milestone 6 — Ruta (origen-destino) por avión

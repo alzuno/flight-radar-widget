@@ -1,3 +1,10 @@
+export interface RouteInfo {
+  origin: string
+  destination: string
+  originCity?: string
+  destinationCity?: string
+}
+
 export interface FlightState {
   icao24: string
   callsign: string | null
@@ -8,7 +15,7 @@ export interface FlightState {
   velocity: number | null
   trueTrack: number | null
   onGround: boolean
-  route: string | null
+  route: RouteInfo | null
 }
 
 export interface HomeLocation {

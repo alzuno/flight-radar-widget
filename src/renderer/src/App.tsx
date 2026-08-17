@@ -52,7 +52,11 @@ function App(): React.JSX.Element {
       }}
     >
       <div className="app-widget-frame">
-        {home ? <Radar home={home} flights={flights} /> : 'Cargando...'}
+        {home && settings ? (
+          <Radar home={home} flights={flights} pollIntervalSeconds={settings.pollIntervalSeconds} />
+        ) : (
+          'Cargando...'
+        )}
 
         {hasCredentials !== false && (
           <button

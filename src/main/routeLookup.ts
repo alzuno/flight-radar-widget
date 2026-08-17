@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import type { RouteInfo } from '../shared/types'
 
 const ADSBDB_URL = 'https://api.adsbdb.com/v0/callsign'
 
@@ -12,9 +13,24 @@ const NEGATIVE_TTL_MS = 30 * 60 * 1000
 const FETCH_TIMEOUT_MS = 5_000
 const MAX_CONCURRENT_LOOKUPS = 4
 
+// Bumped when CacheEntry's shape changes, so a stale on-disk cache from an
+// older version (e.g. route as a plain string) is discarded instead of
+// crashing or silently misrendering.
+const CACHE_FORMAT_VERSION = 2
+
 interface CacheEntry {
-  route: string | null
+  route: RouteInfo | null
   fetchedAt: number
+}
+
+interface CacheFile {
+  version: number
+  entries: Record<string, CacheEntry>
+}
+
+interface AdsbdbAirport {
+  iata_code?: string
+  municipality?: string
 }
 
 interface AdsbdbResponse {
@@ -22,8 +38,8 @@ interface AdsbdbResponse {
     | 'unknown callsign'
     | {
         flightroute?: {
-          origin?: { iata_code?: string }
-          destination?: { iata_code?: string }
+          origin?: AdsbdbAirport
+          destination?: AdsbdbAirport
         }
       }
 }
@@ -45,8 +61,9 @@ export function loadRouteCache(): void {
   const path = cachePath()
   if (!existsSync(path)) return
   try {
-    const raw = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, CacheEntry>
-    for (const [key, entry] of Object.entries(raw)) {
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as CacheFile
+    if (raw.version !== CACHE_FORMAT_VERSION) return
+    for (const [key, entry] of Object.entries(raw.entries)) {
       cache.set(key, entry)
     }
   } catch (err) {
@@ -55,12 +72,13 @@ export function loadRouteCache(): void {
 }
 
 function persistRouteCache(): void {
-  writeFileSync(cachePath(), JSON.stringify(Object.fromEntries(cache)), 'utf-8')
+  const file: CacheFile = { version: CACHE_FORMAT_VERSION, entries: Object.fromEntries(cache) }
+  writeFileSync(cachePath(), JSON.stringify(file), 'utf-8')
 }
 
 /** Synchronous, cache-only lookup — never performs network I/O. Returns
  * `undefined` when the callsign hasn't been resolved yet or its cache entry expired. */
-export function getCachedRoute(callsign: string): string | null | undefined {
+export function getCachedRoute(callsign: string): RouteInfo | null | undefined {
   const entry = cache.get(normalize(callsign))
   if (!entry) return undefined
   const ttl = entry.route === null ? NEGATIVE_TTL_MS : POSITIVE_TTL_MS
@@ -68,7 +86,7 @@ export function getCachedRoute(callsign: string): string | null | undefined {
   return entry.route
 }
 
-async function fetchRoute(callsign: string): Promise<string | null> {
+async function fetchRoute(callsign: string): Promise<RouteInfo | null> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   try {
@@ -80,11 +98,16 @@ async function fetchRoute(callsign: string): Promise<string | null> {
     const json = (await res.json()) as AdsbdbResponse
     if (json.response === 'unknown callsign') return null
 
-    const origin = json.response.flightroute?.origin?.iata_code
-    const destination = json.response.flightroute?.destination?.iata_code
-    if (!origin || !destination) return null
+    const origin = json.response.flightroute?.origin
+    const destination = json.response.flightroute?.destination
+    if (!origin?.iata_code || !destination?.iata_code) return null
 
-    return `${origin}-${destination}`
+    return {
+      origin: origin.iata_code,
+      destination: destination.iata_code,
+      originCity: origin.municipality,
+      destinationCity: destination.municipality
+    }
   } catch (err) {
     console.error(`[routeLookup] fallo al consultar adsbdb.com para ${callsign}:`, err)
     return null
@@ -98,7 +121,7 @@ async function fetchRoute(callsign: string): Promise<string | null> {
  * calls `onResolved` per completed lookup so the caller can push an update. */
 export function refreshRoutesInBackground(
   callsigns: string[],
-  onResolved: (callsign: string, route: string | null) => void
+  onResolved: (callsign: string, route: RouteInfo | null) => void
 ): void {
   const stale = [...new Set(callsigns.map(normalize))].filter(
     (key) => getCachedRoute(key) === undefined && !inFlight.has(key)

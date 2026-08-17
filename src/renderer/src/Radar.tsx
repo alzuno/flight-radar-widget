@@ -8,6 +8,7 @@ import './Radar.css'
 interface RadarProps {
   home: HomeLocation
   flights: FlightState[]
+  pollIntervalSeconds: number
 }
 
 const SIZE = 320
@@ -19,7 +20,10 @@ const ZOOM_LEVELS = [
   [10, 20, 30]
 ]
 const TRAIL_LENGTH = 10
-const MAX_MISSED_CYCLES = 3
+// Keep a plane's trail for ~5 minutes after it stops being reported, regardless
+// of the configured poll interval, with a floor so fast polling doesn't make
+// trails vanish almost instantly.
+const TRAIL_RETENTION_SECONDS = 300
 
 interface Point {
   x: number
@@ -67,10 +71,12 @@ function toBlip(home: HomeLocation, flight: FlightState, maxRangeKm: number): Bl
   return point ? { flight, ...point } : null
 }
 
-function Radar({ home, flights }: RadarProps): React.JSX.Element {
+function Radar({ home, flights, pollIntervalSeconds }: RadarProps): React.JSX.Element {
   const [hoveredIcao24, setHoveredIcao24] = useState<string | null>(null)
   const [history, setHistory] = useState<Map<string, TrailEntry>>(new Map())
   const [zoomIndex, setZoomIndex] = useState(0)
+
+  const maxMissedCycles = Math.max(3, Math.round(TRAIL_RETENTION_SECONDS / pollIntervalSeconds))
 
   const ringDistancesKm = ZOOM_LEVELS[zoomIndex]
   const maxRangeKm = ringDistancesKm[ringDistancesKm.length - 1]
@@ -107,7 +113,7 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
       // polls before giving up on it, instead of wiping it on the first miss.
       for (const [icao24, entry] of next) {
         if (seen.has(icao24)) continue
-        if (entry.missedCycles + 1 > MAX_MISSED_CYCLES) {
+        if (entry.missedCycles + 1 > maxMissedCycles) {
           next.delete(icao24)
         } else {
           next.set(icao24, { ...entry, missedCycles: entry.missedCycles + 1 })
@@ -225,7 +231,7 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
             </text>
             {blip.flight.route && (
               <text className="radar-route-label" x={blip.x + 8} y={blip.y + 2}>
-                {blip.flight.route}
+                {blip.flight.route.origin}-{blip.flight.route.destination}
               </text>
             )}
           </g>
@@ -256,7 +262,17 @@ function Radar({ home, flights }: RadarProps): React.JSX.Element {
       {hovered && (
         <div className="radar-tooltip" style={{ left: hovered.x, top: hovered.y }}>
           <div>{hovered.flight.callsign ?? '(sin callsign)'}</div>
-          <div>Ruta: {hovered.flight.route ?? '—'}</div>
+          <div>
+            Ruta:{' '}
+            {hovered.flight.route
+              ? `${hovered.flight.route.origin}-${hovered.flight.route.destination}`
+              : '—'}
+          </div>
+          {hovered.flight.route?.originCity && hovered.flight.route?.destinationCity && (
+            <div>
+              {hovered.flight.route.originCity} → {hovered.flight.route.destinationCity}
+            </div>
+          )}
           <div>
             Altitud:{' '}
             {hovered.flight.baroAltitude !== null

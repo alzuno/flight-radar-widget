@@ -22,6 +22,7 @@ El proyecto se ejecutará por milestones grandes, cada uno un checkpoint para re
 - **Milestone 4: cerrado.** Comportamiento de widget de escritorio implementado y verificado en vivo, incluyendo el auto-arranque tras reinicio de sesión de macOS (confirmado por el usuario).
 - **Milestone 5: cerrado.** Slices 1 (configuración persistida) y 2 (empaquetado + onboarding de credenciales) implementados y verificados. Se corrigieron además dos bugs post-empaquetado: posición de la ventana no persistida entre reinicios, y aviones fuera del radio del zoom seleccionado dibujándose "aplastados" contra el anillo exterior en vez de ocultarse. README reescrito con documentación completa (setup, credenciales, empaquetado, estructura) y captura real del radar. Tag `v0.6.0` y entrada en `CHANGELOG.md` creados.
 - **Milestone 6: cerrado.** Ruta (origen-destino) por avión vía adsbdb.com — ver detalle abajo. Tag `v0.7.0` y entrada en `CHANGELOG.md` creados.
+- **Mejoras post-Milestone 6** (ver detalle abajo): ciudades de origen/destino en el tooltip (campo `municipality` de adsbdb) y trazas del radar persistiendo ~5 minutos tras salir de rango, en vez de 3 ciclos de sondeo fijos. Se evaluó (con pruebas reales) usar OpenSky `/flights/aircraft` o `hexdb.io` como fuente alternativa de rutas para cubrir callsigns que adsbdb no resuelve, pero se descartó: OpenSky nunca conoce el aeropuerto de destino mientras el avión sigue en vuelo, y se decidió no sumar hexdb.io para mantener el alcance simple. Tag `v0.8.0` y entrada en `CHANGELOG.md` creados.
 - **Siguiente paso**: sin milestone en curso — a definir con el usuario (candidatos mencionados en "Notas de alcance": dead-reckoning de posiciones stale, soporte multi-plataforma, u otra fuente de datos).
 
 ## Seguridad de credenciales (aplica a todos los milestones)
@@ -159,6 +160,18 @@ OpenSky (`/states/all`) no incluye origen/destino de vuelo. El usuario probó ma
 - [x] `src/renderer/src/Radar.tsx` + `Radar.css`: segunda línea de texto bajo el callsign de cada blip mostrando la ruta (solo si existe, sin placeholder); línea `Ruta: —` añadida al tooltip existente, siguiendo la convención de guion largo para datos faltantes.
 
 **Verificación**: `tsc --noEmit` limpio en ambos tsconfig; `npm run dev` con datos reales confirmó rutas visibles en el radar (ej. `WZZ52`/`OTP-BHX`, `THY9DC`/`IST-AYT`) y persistencia correcta de `routes-cache.json`, incluyendo negativos para vuelos sin ruta conocida (jets privados).
+
+## Mejoras post-Milestone 6 — ciudades en rutas y trazas persistentes ✅ CERRADO
+
+El usuario reportó tres problemas tras probar el radar: (1) `adsbdb.com` no resuelve todos los callsigns (confirmado en vivo: `WMT4407` devolvía 404), (2) el tooltip solo mostraba códigos de aeropuerto sin ciudad, (3) las trazas verdes desaparecían muy rápido (3 ciclos de sondeo) al salir un avión del radar.
+
+- **Investigación del punto 1**: se probó en vivo `adsbdb` vs OpenSky `/flights/aircraft` vs `hexdb.io` contra 8 vuelos reales sobre Madrid. Resultado: OpenSky nunca devuelve `estArrivalAirport` mientras el avión sigue en vuelo (solo lo estima tras aterrizar), así que es inútil como fuente de ruta para aviones activos en el radar; `hexdb.io` sí resuelve algunos casos que adsbdb no tiene (confirmado con `WMT4407`) pero sin ciudad limpia. El usuario decidió no sumar ninguna fuente alternativa — se acepta que algunos callsigns queden sin ruta.
+- [x] `src/shared/types.ts`: nuevo tipo `RouteInfo { origin, destination, originCity?, destinationCity? }`; `FlightState.route` pasa de `string | null` a `RouteInfo | null`.
+- [x] `src/main/routeLookup.ts`: `fetchRoute()` ahora lee también `origin.municipality` / `destination.municipality` de la respuesta de adsbdb. Formato de `routes-cache.json` versionado (`CACHE_FORMAT_VERSION = 2`) para descartar limpiamente el cache viejo (rutas como string) en vez de romper al leerlo.
+- [x] `src/renderer/src/Radar.tsx`: tooltip muestra código de ruta y, si hay ciudades disponibles, una segunda línea `Ciudad origen → Ciudad destino`. `MAX_MISSED_CYCLES` fijo (3) reemplazado por un cálculo dinámico (`~5 min / pollIntervalSeconds`, piso de 3 ciclos) para que la retención de trazas sea consistente sin importar el intervalo de sondeo configurado por el usuario.
+- [x] `src/renderer/src/App.tsx`: pasa `settings.pollIntervalSeconds` como prop a `<Radar>`.
+
+**Verificación**: `tsc --noEmit` limpio en ambos tsconfig, `npm run build` exitoso. Verificado en vivo con `npm run dev`: hover real simulado con `cliclick` sobre el blip `EZY43WR` mostró el tooltip completo con `Ruta: LGW-MAD` y la línea `London → Madrid` debajo, confirmando el fix end-to-end.
 
 ## Flujo de versionamiento (aplica a todos los milestones)
 
